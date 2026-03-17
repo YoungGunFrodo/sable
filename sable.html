@@ -1,0 +1,3361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1e2124">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sable">
+<title>Sable</title>
+<!-- PWA Manifest (injected dynamically below so it works from any origin) -->
+<link rel="manifest" id="pwa-manifest">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#1a1c1f;--bg1:#1e2124;--bg2:#282b30;--bg3:#36393e;
+  --hover:#3f4248;--active:#404449;
+  --accent:#7289da;--accent2:#677bc4;
+  --green:#43b581;--red:#f04747;--yellow:#faa61a;--blue:#00b0f4;
+  --t1:#dcddde;--t2:#b9bbbe;--t3:#72767d;--t4:#4f5460;
+  --border:#202225;
+  --r:8px;
+}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg1);color:var(--t1);-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#111;border-radius:3px}
+
+/* ── AUTH ── */
+#auth{display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg,#161819 0%,#1e2124 50%,#13151a 100%)}
+.abox{background:var(--bg2);border-radius:16px;padding:40px;width:420px;max-width:94vw;box-shadow:0 16px 48px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.06)}
+.alogo{text-align:center;margin-bottom:28px}
+.alogo svg{width:52px;height:52px}
+.alogo h1{font-size:26px;font-weight:800;color:#fff;letter-spacing:3px;margin-top:10px}
+.alogo p{font-size:12px;color:var(--t3);margin-top:5px;letter-spacing:.5px}
+.atabs{display:flex;gap:3px;margin-bottom:24px;background:var(--bg0);border-radius:10px;padding:4px}
+.atab{flex:1;padding:9px;text-align:center;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--t3);border:none;background:none;transition:all .2s}
+.atab.on{background:var(--accent);color:#fff}
+.atab:hover:not(.on){color:var(--t1);background:var(--hover)}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:7px}
+.fg input,.fg select{width:100%;padding:11px 14px;background:var(--bg0);border:1.5px solid var(--border);border-radius:8px;color:var(--t1);font-size:14px;outline:none;transition:border .2s}
+.fg input:focus{border-color:var(--accent)}
+.btn{padding:12px 20px;border-radius:8px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn-full{width:100%}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent2)}
+.btn-ghost{background:var(--hover);color:var(--t1)}.btn-ghost:hover{background:var(--active)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#3ca374}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#c0392b}
+.btn-sm{padding:7px 14px;font-size:13px}
+.aerr{color:var(--red);font-size:13px;margin-top:12px;text-align:center;min-height:18px}
+.afoot{color:var(--t3);font-size:12px;margin-top:18px;text-align:center;line-height:1.7}
+
+/* ── BANNER ── */
+#setup-banner{display:none;position:fixed;bottom:76px;right:20px;z-index:600;background:var(--bg2);border:1px solid var(--accent);border-radius:14px;padding:18px 20px;max-width:320px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#setup-banner h4{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px}
+#setup-banner p{font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:12px}
+#setup-banner .bbtns{display:flex;gap:8px}
+
+/* ── APP ── */
+#app{display:none;height:100vh}
+#app.on{display:flex}
+
+/* Server sidebar */
+#srv-list{width:68px;background:var(--bg0);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px;overflow-y:auto;flex-shrink:0;border-right:1px solid var(--border)}
+.sicon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800;font-size:15px;transition:all .25s;position:relative;flex-shrink:0;user-select:none}
+.sicon:hover,.sicon.on{border-radius:16px}
+.sicon.dm{background:var(--accent);color:#fff;font-size:20px}.sicon.dm:hover,.sicon.dm.on{background:var(--accent2)}
+.sicon.srv{color:#fff}.sicon.srv:hover,.sicon.srv.on{background:var(--accent)!important}
+.sicon.plus{background:var(--bg2);color:var(--green);font-size:26px}.sicon.plus:hover{background:var(--green);color:#fff}
+.ssep{width:32px;height:2px;background:var(--bg3);border-radius:1px;flex-shrink:0}
+.spip{position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:4px;border-radius:0 2px 2px 0;background:#fff;transition:all .2s;height:0}
+.sicon.on .spip{height:22px}.sicon:not(.on):hover .spip{height:10px}
+
+/* Channel panel */
+#ch-panel{width:236px;background:var(--bg2);display:flex;flex-direction:column;flex-shrink:0}
+#srv-hdr{padding:0 16px;height:48px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.25);font-weight:700;font-size:15px;color:#fff;cursor:pointer;flex-shrink:0;user-select:none}
+#srv-hdr:hover{background:var(--hover)}
+#ch-list{flex:1;overflow-y:auto;padding:8px 0}
+.csh{padding:16px 8px 4px;display:flex;align-items:center;justify-content:space-between}
+.csh span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#72767d}
+.cadd{color:var(--t3);cursor:pointer;font-size:20px;line-height:1;padding:0 2px;border-radius:3px}
+.cadd:hover{color:var(--t1)}
+.citem{display:flex;align-items:center;gap:7px;padding:6px 8px 6px 16px;margin:0 8px;border-radius:5px;cursor:pointer;color:#72767d;font-size:15px;transition:all .1s}
+.citem:hover{background:var(--hover);color:#dcddde}
+.citem.on{background:var(--active);color:#fff}
+.cname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* User bar */
+.ubar{padding:8px;background:var(--bg0);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.uav{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;position:relative}
+.unfo{flex:1;overflow:hidden}
+.uname{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ustatus{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;transition:background .3s}
+.sdot.saving{background:var(--yellow);animation:blink .6s infinite}
+.sdot.err{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.cbt{width:28px;height:28px;border-radius:5px;border:none;background:none;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.cbt:hover{background:var(--hover);color:var(--t1)}
+.online-dot{position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg0);background:var(--green)}
+
+/* DM list */
+.ditem{display:flex;align-items:center;gap:9px;padding:8px;margin:1px 8px;border-radius:7px;cursor:pointer;color:var(--t2);transition:all .1s}
+.ditem:hover{background:var(--hover);color:var(--t1)}.ditem.on{background:var(--active);color:#fff}
+.ditem .dcls{display:none;flex-shrink:0;width:18px;height:18px;align-items:center;justify-content:center;border-radius:4px;font-size:13px;line-height:1;color:var(--t3);margin-left:auto;padding:1px}.ditem:hover .dcls{display:flex}.ditem .dcls:hover{background:rgba(240,71,71,.3);color:var(--red)}
+.dav{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.dname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Main */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#chat-hdr{height:48px;padding:0 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(0,0,0,.3);flex-shrink:0;background:var(--bg3)}
+#chat-hdr h2{font-size:15px;font-weight:700;color:#fff}
+.hacts{margin-left:auto;display:flex;gap:6px;align-items:center}
+.ibt{width:28px;height:28px;border-radius:5px;border:none;background:none;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.ibt:hover{color:var(--t1);background:var(--hover)}
+#msgs{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column}
+.attach-bar{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:rgba(0,0,0,.2);border-top:1px solid rgba(255,255,255,.06)}
+.att-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:4px 8px;font-size:12px}
+.att-chip button{background:none;border:none;color:#fff;cursor:pointer;opacity:.7}
+.att-chip button:hover{opacity:1}
+.abtn{width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.abtn:hover{background:rgba(255,255,255,.12)}
+.msg-atts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.mimg{max-width:260px;max-height:180px;border-radius:10px;display:block;border:1px solid rgba(255,255,255,.1)}
+.mimg.sticker{max-width:120px;max-height:120px;border:none;background:transparent}
+.mfile{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04);font-size:12px;color:#fff;text-decoration:none}
+.mfile span{opacity:.8}
+.mrx{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.rx{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:999px;font-size:12px;color:#fff;cursor:pointer}
+.rx.on{background:rgba(114,137,218,.25);border-color:rgba(114,137,218,.6)}
+.rx-add{opacity:.6}
+.rx-add:hover{opacity:1}
+.rx-pop{position:fixed;z-index:9999;background:#202225;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
+.rx-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.rx-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 6px;cursor:pointer;color:#fff;font-size:16px}
+.sticker-pop{position:absolute;bottom:52px;left:12px;z-index:999;background:#202225;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;display:none;max-width:320px}
+.sticker-grid{display:flex;flex-wrap:wrap;gap:8px;max-height:200px;overflow:auto}
+.sticker-item{width:64px;height:64px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sticker-item img{max-width:58px;max-height:58px}
+.mwelcome{padding:16px 16px 8px;border-top:1px solid rgba(255,255,255,.05);margin-top:auto}
+.mwelcome h3{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
+.mwelcome p{color:var(--t2);font-size:14px}
+.mg{padding:2px 16px}.mg:hover{background:rgba(0,0,0,.1)}
+.mav-row{display:flex;gap:16px;padding-top:16px}
+.mav{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.mb{flex:1;min-width:0}
+.mh{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.mauthor{font-size:15px;font-weight:600;color:#fff}
+.mts{font-size:11px;color:var(--t3)}
+.mc{font-size:14px;color:var(--t1);line-height:1.55;word-break:break-word}
+.mcont{padding-left:56px}
+.iarea{padding:0 16px 16px;flex-shrink:0}
+.ibox{background:var(--hover);border-radius:10px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1.5px solid transparent;transition:border .2s}
+.ibox:focus-within{border-color:rgba(255,255,255,.1)}
+#minput{flex:1;background:none;border:none;outline:none;color:var(--t1);font-size:15px;padding:12px 4px;resize:none;max-height:200px;font-family:inherit;line-height:1.4}
+#minput::placeholder{color:var(--t3)}
+.sbtn{width:34px;height:34px;border-radius:7px;border:none;background:none;color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sbtn:hover{background:var(--active)}
+
+/* Voice */
+#voice{flex:1;display:none;flex-direction:column;background:var(--bg3)}
+#voice.on{display:flex}
+.vhdr{padding:16px;border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px}
+.vhdr h2{font-size:15px;font-weight:700;color:#fff}
+.vstatus{font-size:13px;color:var(--green);font-weight:700}
+.vgrid{flex:1;display:flex;flex-wrap:wrap;gap:12px;padding:24px;align-content:flex-start;overflow-y:auto}
+.vcard{width:156px;height:156px;background:var(--bg2);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px solid transparent;transition:border .2s}
+.vcard.speak{border-color:var(--green)}
+.vavc{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px}
+.vn{font-size:13px;font-weight:600;color:#fff;text-align:center;padding:0 6px}
+.vctrl{padding:14px;background:var(--bg0);display:flex;align-items:center;justify-content:center;gap:12px}
+.vbtn{width:44px;height:44px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all .2s}
+.vbtn.m,.vbtn.d{background:var(--bg3);color:var(--t1)}.vbtn.m:hover,.vbtn.d:hover{background:var(--hover)}
+.vbtn.m.on,.vbtn.d.on{background:var(--red);color:#fff}
+.vbtn.h{background:var(--red);color:#fff}.vbtn.h:hover{background:#c0392b}
+
+/* Members */
+#mbrs{width:234px;background:var(--bg2);padding:16px 8px;overflow-y:auto;flex-shrink:0;border-left:1px solid rgba(0,0,0,.2)}
+#mbrs h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);padding:0 8px;margin-bottom:8px}
+.mbritem{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;color:var(--t2);transition:all .1s}
+.mbritem:hover{background:var(--hover);color:var(--t1)}
+.mbrav{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;position:relative}
+.mbrnm{font-size:14px;font-weight:500}
+
+/* Modals */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:1000}
+.moverlay.on{display:flex}
+.mdl{background:var(--bg2);border-radius:14px;padding:26px;width:460px;max-width:93vw;box-shadow:0 16px 48px rgba(0,0,0,.6);position:relative;max-height:88vh;overflow-y:auto}
+.mdl h2{font-size:20px;font-weight:800;color:#fff;margin-bottom:5px}
+.mdl>.mdesc{font-size:14px;color:var(--t2);margin-bottom:20px}
+.mclose{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;border:none;background:var(--hover);color:var(--t2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.mclose:hover{background:var(--red);color:#fff}
+.mrow{display:flex;gap:8px;margin-top:16px}.mrow .btn{flex:1}
+
+/* Settings */
+.ssec{background:var(--bg0);border-radius:10px;padding:14px;margin-bottom:12px}
+.ssec h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:10px}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sstat{background:var(--bg2);border-radius:7px;padding:10px 12px}
+.sstat-l{font-size:11px;color:var(--t3);margin-bottom:2px}
+.sstat-v{font-size:18px;font-weight:700;color:#fff}
+.fstatus{display:flex;align-items:center;gap:10px}
+.fstatus-ico{font-size:22px}
+.fstatus-t{font-size:13px;font-weight:700;color:#fff}
+.fstatus-p{font-size:12px;color:var(--t3);margin-top:2px;word-break:break-all}
+.pill{display:inline-flex;align-items:center;gap:3px;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600}
+.pg{background:rgba(67,181,129,.15);color:var(--green)}
+.pb{background:rgba(114,137,218,.15);color:var(--accent)}
+.py{background:rgba(250,166,26,.15);color:var(--yellow)}
+.code-box{background:var(--bg0);border-radius:7px;padding:10px 14px;font-family:monospace;font-size:15px;letter-spacing:2px;color:var(--accent);text-align:center;border:1.5px solid var(--border);cursor:pointer;user-select:all}
+.code-box:hover{border-color:var(--accent)}
+.code-sm{font-size:10px;letter-spacing:0;word-break:break-all}
+.dzone{border:1px solid rgba(240,71,71,.35);border-radius:10px;padding:14px;margin-top:12px}
+.dzone h4{color:var(--red);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+
+/* Toast */
+#toasts{position:fixed;bottom:24px;right:24px;z-index:2000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--hover);color:var(--t1);padding:12px 16px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.5);animation:tin .2s ease;max-width:340px;border-left:4px solid var(--accent);pointer-events:all}
+.toast.err{border-left-color:var(--red)}.toast.ok{border-left-color:var(--green)}.toast.warn{border-left-color:var(--yellow)}
+@keyframes tin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Incoming Call Overlay */
+#incall-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+#incall-card{background:var(--bg1);border-radius:20px;padding:36px 48px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.8);min-width:280px;animation:incall-in .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes incall-in{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+#incall-avatar{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;border:3px solid var(--accent);animation:ring-pulse 1.2s ease-in-out infinite}
+@keyframes ring-pulse{0%,100%{box-shadow:0 0 0 0 rgba(114,137,218,.7)}50%{box-shadow:0 0 0 14px rgba(114,137,218,0)}}
+#incall-name{font-size:22px;font-weight:700;color:var(--t1);text-align:center}
+#incall-sub{font-size:14px;color:var(--t3);text-align:center}
+#incall-btns{display:flex;gap:40px;margin-top:10px}
+#incall-btns button{width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;transition:transform .1s,filter .1s}
+#incall-btns button:hover{transform:scale(1.12);filter:brightness(1.2)}
+#incall-decline{background:#f04747}
+#incall-accept{background:#43b581}
+#incall-labels{display:flex;gap:40px;font-size:12px;color:var(--t3)}
+#incall-labels span{width:64px;text-align:center}
+
+/* Ctx menu */
+.ctxm{position:fixed;background:var(--bg0);border-radius:8px;padding:4px;box-shadow:0 8px 28px rgba(0,0,0,.65);z-index:3000;min-width:160px;display:none}
+.ctxm.on{display:block}
+.ctxi{padding:8px 12px;border-radius:5px;cursor:pointer;font-size:14px;color:var(--t2)}
+.ctxi:hover{background:var(--accent);color:#fff}
+.ctxi.danger:hover{background:var(--red)}
+.ctxsep{height:1px;background:var(--hover);margin:4px 0}
+
+/* Empty */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:14px}
+.empty h3{font-size:18px;font-weight:700;color:var(--t2)}
+.enc-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(67,181,129,.15);color:var(--green);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:700}
+.tbar{padding:0 16px 8px;font-size:12px;color:var(--t3);min-height:20px}
+
+/* ── Friends panel ── */
+.fpanel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--bg3)}
+.fpanel-hdr h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin:0}
+.fadd-btn{border:none;background:transparent;color:var(--green);font-size:22px;cursor:pointer;padding:0;line-height:1;font-weight:700}
+.fadd-btn:hover{color:#fff}
+.fsec-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);padding:8px 14px 2px}
+.fitem{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:5px;cursor:pointer;margin:0 4px}
+.fitem:hover{background:var(--hover)}
+.fav{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;overflow:hidden;position:relative}
+.fav img,.mav img,.mbrav img,.dav img,.uav img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.fpres{position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg0)}
+.fpres.on{background:var(--green)}.fpres.off{background:var(--t3)}
+.fname{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fstat-txt{font-size:11px;color:var(--t3)}
+/* ── Avatar upload (settings) ── */
+.av-area{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.av-big{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;color:#fff}
+.av-big:hover .av-ovl{opacity:1}
+.av-ovl{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;font-size:20px}
+.av-big img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;position:absolute;inset:0}
+/* ── Color picker ── */
+.cpick-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.cpick{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s;flex-shrink:0}
+.cpick:hover,.cpick.on{transform:scale(1.2);border-color:#fff}
+/* ── Status picker ── */
+.spick-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.spick{padding:4px 11px;border-radius:12px;font-size:12px;cursor:pointer;border:2px solid transparent;background:var(--bg3);color:var(--t2);transition:all .1s}
+.spick.on{border-color:var(--accent);background:rgba(114,137,218,.18);color:var(--t1)}
+/* ── Setup modal ── */
+.setup-choice{display:flex;flex-direction:column;gap:10px;margin:18px 0}
+.setup-opt{padding:16px;background:var(--bg3);border-radius:8px;cursor:pointer;border:2px solid transparent;text-align:left;transition:all .15s;width:100%}
+.setup-opt:hover{border-color:var(--accent);background:var(--bg2)}
+.setup-opt h4{margin:0 0 4px;font-size:15px;color:var(--t1);font-weight:700}
+.setup-opt p{margin:0;font-size:12px;color:var(--t3);line-height:1.5}
+/* ── Search result card ── */
+.ucard{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px;margin-top:8px}
+
+/* Responsive */
+@media(max-width:700px){#mbrs{display:none}#srv-list{width:56px}.sicon{width:42px;height:42px}}
+
+/* ── VIDEO CALL OVERLAY ── */
+#vcall-overlay{position:fixed;inset:0;z-index:8000;background:#0d0d0d;display:none;flex-direction:column}
+#vcall-overlay.on{display:flex}
+#vcall-remote-wrap{flex:1;position:relative;overflow:hidden;background:#111;display:flex;align-items:center;justify-content:center}
+#vcall-remote-vid{width:100%;height:100%;object-fit:cover;display:none}
+#vcall-local-vid{position:absolute;bottom:16px;right:16px;width:176px;height:132px;border-radius:12px;object-fit:cover;background:var(--bg3);border:2px solid rgba(255,255,255,.25);z-index:2;display:none}
+#vcall-no-vid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#111}
+.vcall-big-av{width:108px;height:108px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:700;color:#fff;border:3px solid var(--accent);animation:ring-pulse 1.4s ease-in-out infinite}
+.vcall-info{position:absolute;top:22px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none}
+.vcall-who{font-size:19px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.vcall-state-lbl{font-size:13px;color:rgba(255,255,255,.7)}
+.vcall-ctrl{padding:16px 24px;display:flex;align-items:center;justify-content:center;gap:16px;background:rgba(0,0,0,.78);flex-shrink:0}
+.vcbtn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.vcbtn:hover{filter:brightness(1.2);transform:scale(1.08)}
+.vcbtn.ab{background:var(--bg3);color:var(--t1)}.vcbtn.ab.on{background:var(--red);color:#fff}
+.vcbtn.cb{background:var(--bg3);color:var(--t1)}.vcbtn.cb.on{background:var(--red);color:#fff}
+.vcbtn.hup{background:var(--red);color:#fff}
+/* SFU video tiles in voice grid */
+.vcard.has-video{width:216px;height:194px;padding:8px;justify-content:flex-start}
+.vcard.has-video video{width:100%;height:108px;object-fit:cover;border-radius:8px;background:#000;display:block;flex-shrink:0;margin-bottom:4px}
+.vcard-self-vid{width:100%;height:108px;object-fit:cover;border-radius:8px;background:#111;display:block;flex-shrink:0;margin-bottom:4px}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH ── -->
+<div id="auth">
+  <div class="abox">
+    <div class="alogo">
+      <svg viewBox="0 0 52 52" fill="none">
+        <circle cx="26" cy="26" r="26" fill="#7289da"/>
+        <path d="M18 18 C18 18 20 14 26 13.5 C32 13 34 18 34 18 C34 18 37 24 36 30 C34.5 32 32 33.5 32 33.5 L31 31.5 C32.5 31 33.5 29.5 34 28 C33 28.5 31.5 29 30 29 C28 28.5 27 27 27 26 C27 24 28.5 23 30 23 C31.5 23 33 24 33 26 C33 28 31.5 29 30 29 M21 33.5 L20 31.5 C18.5 31 17.5 29.5 18 28 C17 28.5 15.5 29 14 29 L14 29 C16 25 16 22 16 18" stroke="white" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="26" fill="#7289da" opacity="0"/>
+        <text x="13" y="35" font-family="Georgia,serif" font-size="22" font-weight="bold" fill="white">S</text>
+      </svg>
+      <h1>SABLE</h1>
+      <p>ENCRYPTED · LOCAL-FIRST · P2P</p>
+    </div>
+    <div class="atabs">
+      <button class="atab on" onclick="switchTab('login')">Sign In</button>
+      <button class="atab" onclick="switchTab('register')">Create Account</button>
+    </div>
+    <div id="lform">
+      <div class="fg"><label>Username</label><input id="lu" type="text" placeholder="your username" autocomplete="username"/></div>
+      <div class="fg"><label>Password</label><input id="lp" type="password" placeholder="your password" autocomplete="current-password"/></div>
+      <button class="btn btn-accent btn-full" onclick="login()">Sign In</button>
+    </div>
+    <div id="rform" style="display:none">
+      <div class="fg"><label>Username</label><input id="ru" type="text" placeholder="3-20 chars, letters/numbers/_" autocomplete="username"/></div>
+      <div class="fg"><label>Display Name</label><input id="rd" type="text" placeholder="Your name"/></div>
+      <div class="fg"><label>Password</label><input id="rp" type="password" placeholder="8+ characters" autocomplete="new-password"/></div>
+      <div class="fg"><label>Confirm Password</label><input id="rc" type="password" placeholder="Repeat" autocomplete="new-password"/></div>
+      <button class="btn btn-accent btn-full" onclick="register()">Create Account</button>
+    </div>
+    <div class="aerr" id="aerr"></div>
+    <p class="afoot">Your login keypair is derived from your credentials — <strong>never sent to any server</strong>. All data is stored on your device.</p>
+  </div>
+</div>
+
+<!-- ── FIRST-RUN BANNER ── -->
+<div class="moverlay" id="setup-modal" style="z-index:3000">
+  <div class="mdl" style="max-width:440px">
+    <h2>💾 Where should Sable save your data?</h2>
+    <p class="mdesc">Your messages live on this device. Choose your storage method — you can always change this in Settings.</p>
+    <div class="setup-choice">
+      <button class="setup-opt" onclick="pickFile(true);dismissSetupModal()">
+        <h4>📄 Save to a file on your disk</h4>
+        <p>Creates a real .json file you can see, back up, and move to other computers. Recommended.</p>
+      </button>
+      <button class="setup-opt" onclick="dismissSetupModal()">
+        <h4>🌐 Browser storage only</h4>
+        <p>Data stays in this browser. Works fine, but may be lost if you clear browser cache.</p>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <!-- Server sidebar -->
+  <div id="srv-list">
+    <div class="sicon dm on" id="dm-btn" onclick="goDMs()" title="Direct Messages">
+      <div class="spip"></div>💬
+    </div>
+    <div class="ssep"></div>
+    <div id="sicons"></div>
+    <div class="sicon plus" onclick="showM('csm')" title="Create Server">+</div>
+  </div>
+
+  <!-- Channel panel -->
+  <div id="ch-panel">
+    <div id="srv-hdr">
+      <span id="srv-hdr-name">Direct Messages</span>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10z"/></svg>
+    </div>
+    <div id="ch-list"></div>
+    <div class="ubar">
+      <div class="uav" id="myav" style="background:#7289da;color:#fff;">?<div class="online-dot"></div></div>
+      <div class="unfo">
+        <div class="uname" id="myname">…</div>
+        <div class="ustatus"><span class="sdot" id="sdot"></span><span id="slabel">loading</span></div>
+        <div id="relay-status" title="Relay: connecting…" style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3);margin-top:1px;cursor:default">
+          <span id="relay-dot" style="width:6px;height:6px;border-radius:50%;background:var(--yellow);flex-shrink:0;transition:background .4s"></span>
+          <span id="relay-label">relay…</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:2px">
+        <button class="cbt" title="Settings" onclick="openSettings()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+        <button class="cbt" title="Sign Out" onclick="logout()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div id="main">
+    <div id="chat" style="display:flex;flex-direction:column;flex:1;min-width:0">
+      <div id="chat-hdr">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        <h2 id="chat-title">Select a channel</h2>
+        <div class="hacts">
+          <span id="enc-badge" class="enc-pill" style="display:none">🔒 E2E Encrypted</span>
+          <span id="local-badge" class="pill pb" style="display:none">💾 Stored locally</span>
+          <button class="ibt" id="call-btn" title="Voice Call" onclick="startCall()" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+          </button>
+          <button class="ibt" id="vcall-btn" title="Video Call" onclick="startCall(null,true)" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          </button>
+          <button class="ibt" onclick="toggleMbrs()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="msgs">
+        <div class="empty">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" style="opacity:.25"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          <h3>Welcome to Sable</h3>
+          <p>Select a channel or DM to start chatting</p>
+        </div>
+      </div>
+      <div class="tbar" id="tbar"></div>
+      <div class="iarea" id="iarea" style="display:none">
+        <div class="ibox">
+          <button class="abtn" onclick="openFilePicker()" title="Attach file">📎</button>
+          <button class="abtn" onclick="toggleStickerPicker()" title="Stickers">😸</button>
+          <textarea id="minput" placeholder="Send a message…" rows="1" onkeydown="handleKey(event)" oninput="arz(this)"></textarea>
+          <button class="sbtn" onclick="send()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <input id="filepick" type="file" multiple style="display:none" onchange="handleFilePick(event)">
+        <input id="stickerpick" type="file" accept="image/*" style="display:none" onchange="handleStickerUpload(event)">
+        <div class="sticker-pop" id="stickers-pop"></div>
+      </div>
+    </div>
+    <div id="voice">
+      <div class="vhdr">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--green)"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+        <h2 id="vchname">Voice Channel</h2>
+        <span class="vstatus">● Connected</span>
+        <div style="margin-left:auto"><button class="ibt" onclick="exitVoice()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></button></div>
+      </div>
+      <div class="vgrid" id="vgrid"></div>
+      <div class="vctrl">
+        <button class="vbtn m" id="vmute" onclick="toggleMute()">🎤</button>
+        <button class="vbtn d" id="vdeaf" onclick="toggleDeaf()">🔊</button>
+        <button class="vbtn" id="vcam-btn" onclick="toggleSfuCamera()" title="Toggle Camera" style="background:var(--bg3);color:var(--t1)">📷</button>
+        <button class="vbtn h" onclick="leaveVoice()">📵</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mbrs">
+    <div id="mbrs-srv" style="display:none">
+      <div class="fpanel-hdr"><h3>Members</h3></div>
+      <div id="mbrs-list"></div>
+    </div>
+    <div id="mbrs-dm">
+      <div class="fpanel-hdr">
+        <h3>Friends</h3>
+        <button class="fadd-btn" onclick="showM('sfm')" title="Add Friend">+</button>
+      </div>
+      <div id="friends-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="moverlay" id="csm">
+  <div class="mdl"><button class="mclose" onclick="hideM('csm')">✕</button>
+    <h2>Create a Server</h2><p class="mdesc">Name your server. An invite code is generated automatically.</p>
+    <div class="fg"><label>Server Name</label><input id="csn" type="text" placeholder="My Server"/></div>
+    <div class="mrow"><button class="btn btn-ghost" onclick="hideM('csm')">Cancel</button><button class="btn btn-accent" onclick="createServer()">Create</button></div>
+  </div>
+</div>
+<div class="moverlay" id="jsm">
+  <div class="mdl"><button class="mclose" onclick="hideM('jsm')">✕</button>
+    <h2>Join a Server</h2><p class="mdesc">Enter the invite code a friend shared with you.</p>
+    <div class="fg"><label>Invite Code</label><input id="jsc" type="text" placeholder="XXXXXX" style="text-transform:uppercase"/></div>
+    <div class="mrow"><button class="btn btn-ghost" onclick="hideM('jsm')">Cancel</button><button class="btn btn-accent" onclick="joinServer()">Join</button></div>
+  </div>
+</div>
+<div class="moverlay" id="invm">
+  <div class="mdl"><button class="mclose" onclick="hideM('invm')">✕</button>
+    <h2>Invite People</h2><p class="mdesc">Share this code to invite friends to <strong id="invname"></strong>.</p>
+    <div class="code-box" id="invcode" onclick="copyEl(this,'Code copied!')"></div>
+    <p style="font-size:12px;color:var(--t3);text-align:center;margin-top:8px">Click to copy</p>
+  </div>
+</div>
+<div class="moverlay" id="acm">
+  <div class="mdl"><button class="mclose" onclick="hideM('acm')">✕</button>
+    <h2>Create Channel</h2><p class="mdesc">Add a new channel to this server.</p>
+    <div class="fg"><label>Type</label><select id="chtype"><option value="text">📝 Text Channel</option><option value="voice">🔊 Voice Channel</option></select></div>
+    <div class="fg"><label>Name</label><input id="chn" type="text" placeholder="channel-name"/></div>
+    <div class="mrow"><button class="btn btn-ghost" onclick="hideM('acm')">Cancel</button><button class="btn btn-accent" onclick="createCh()">Create</button></div>
+  </div>
+</div>
+<div class="moverlay" id="dmm">
+  <div class="mdl"><button class="mclose" onclick="hideM('dmm')">✕</button>
+    <h2>New Direct Message</h2><p class="mdesc">Enter the exact username of the person you want to message.</p>
+    <div class="fg"><label>Username</label><input id="dmu" type="text" placeholder="exactusername"/></div>
+    <div class="mrow"><button class="btn btn-ghost" onclick="hideM('dmm')">Cancel</button><button class="btn btn-accent" onclick="startDM()">Open DM</button></div>
+  </div>
+</div>
+<div class="moverlay" id="sfm">
+  <div class="mdl"><button class="mclose" onclick="hideM('sfm')">✕</button>
+    <h2>Add a Friend</h2><p class="mdesc">Search by their exact username.</p>
+    <div class="fg"><label>Username</label><input id="sfu" type="text" placeholder="exactusername"/></div>
+    <div id="sf-result"></div>
+    <div class="mrow"><button class="btn btn-ghost" onclick="hideM('sfm')">Cancel</button><button class="btn btn-accent" onclick="searchUser()">Search</button></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="moverlay" id="stm">
+  <div class="mdl">
+    <button class="mclose" onclick="hideM('stm')">✕</button>
+    <h2>⚙ Settings &amp; Data</h2>
+    <p class="mdesc">All data belongs to you. Nothing is stored on any external server.</p>
+
+    <div class="ssec">
+      <h4>📁 Storage Location</h4>
+      <div class="fstatus">
+        <div class="fstatus-ico" id="ficon">🖥️</div>
+        <div>
+          <div class="fstatus-t" id="ftitle">Browser IndexedDB only</div>
+          <div class="fstatus-p" id="fpath">Link a file below for true on-disk storage</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-green btn-sm" id="lnk-btn" onclick="pickFile(false)">📄 Link File on Disk</button>
+        <button class="btn btn-ghost btn-sm" id="ulnk-btn" onclick="unlinkFile()" style="display:none">Unlink</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇ Export Backup</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp').click()">⬆ Import Backup</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(event)"/>
+      </div>
+      <p id="fsns" style="display:none;margin-top:8px;font-size:12px;color:var(--yellow)">⚠ File storage requires Chrome or Edge. Export/Import still work.</p>
+    </div>
+
+    <div class="ssec">
+      <h4>📊 Your Data</h4>
+      <div class="sgrid">
+        <div class="sstat"><div class="sstat-l">Messages</div><div class="sstat-v" id="stmsg">—</div></div>
+        <div class="sstat"><div class="sstat-l">Servers</div><div class="sstat-v" id="stsrv">—</div></div>
+        <div class="sstat"><div class="sstat-l">DM contacts</div><div class="sstat-v" id="stdm">—</div></div>
+        <div class="sstat"><div class="sstat-l">Total size</div><div class="sstat-v" id="stsz">—</div></div>
+      </div>
+    </div>
+
+    <div class="ssec">
+      <h4>🌐 Network &amp; Relay</h4>
+      <p style="font-size:12px;color:var(--t3);margin-bottom:8px">Messages are relayed through a Gun.js peer. Leave blank to use the default public relay. <a href="https://github.com/amark/gun#ecology" target="_blank" style="color:var(--accent)">Host your own relay</a> for reliability.</p>
+      <div class="fg"><label>Relay WebSocket URL</label><input id="relay-url" type="url" placeholder="wss://your-relay.example.com/gun" style="font-family:monospace;font-size:12px"/></div>
+      <p id="relay-status-modal" style="font-size:12px;margin-top:6px;color:var(--t3)"></p>
+    </div>
+
+    <div class="ssec">
+      <h4>👤 Profile</h4>
+      <input type="file" id="av-inp" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)"/>
+      <div class="av-area">
+        <div class="av-big" id="av-preview" onclick="document.getElementById('av-inp').click()">
+          <span id="av-preview-ini">?</span>
+          <div class="av-ovl">📷</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--t3);margin-bottom:4px">Click avatar to change photo</div>
+          <button class="btn btn-ghost btn-sm" onclick="removeAvatar()">Remove photo</button>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:10px"><label>Display Name</label><input id="sname" type="text"/></div>
+      <div class="fg" style="margin-bottom:10px"><label>Bio / Status Message</label><input id="sbio" type="text" placeholder="What's on your mind?" maxlength="80"/></div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:6px">Avatar Color</label>
+        <div class="cpick-row" id="cpick-row"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:6px">Status</label>
+        <div class="spick-row">
+          <button class="spick" data-status="online" onclick="pickStatus('online')">🟢 Online</button>
+          <button class="spick" data-status="idle" onclick="pickStatus('idle')">🌙 Idle</button>
+          <button class="spick" data-status="dnd" onclick="pickStatus('dnd')">⛔ Do Not Disturb</button>
+          <button class="spick" data-status="invisible" onclick="pickStatus('invisible')">⚫ Invisible</button>
+        </div>
+      </div>
+      <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:7px">Your Public Key</label>
+      <div class="code-box code-sm" id="pubkey" onclick="copyEl(this,'Public key copied!')"></div></div>
+    </div>
+
+    <div class="ssec">
+      <h4>🔑 Change Password</h4>
+      <div class="fg"><label>Current Password</label><input id="cp-old" type="password" placeholder="Current password"/></div>
+      <div class="fg"><label>New Password</label><input id="cp-new" type="password" placeholder="8+ characters"/></div>
+      <div class="fg" style="margin-bottom:10px"><label>Confirm New Password</label><input id="cp-conf" type="password" placeholder="Repeat new password"/></div>
+      <button class="btn btn-ghost btn-sm" id="cp-btn" onclick="changePassword()">Change Password</button>
+    </div>
+
+    <div class="mrow" style="margin-bottom:0">
+      <button class="btn btn-ghost" onclick="hideM('stm')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveSettings()">Save</button>
+    </div>
+    <div class="dzone">
+      <h4>⚠ Danger Zone</h4>
+      <button class="btn btn-red btn-sm" onclick="nuke()">Delete All Local Data</button>
+    </div>
+  </div>
+</div>
+
+<div class="ctxm" id="ctx"></div>
+<div id="toasts"></div>
+<div id="react-pop" class="rx-pop"></div>
+<div id="audios" style="display:none"></div>
+
+<!-- ── Incoming Call Overlay ── -->
+<div id="incall-overlay" style="display:none">
+  <div id="incall-card">
+    <div id="incall-avatar"></div>
+    <div id="incall-name">Incoming Call</div>
+    <div id="incall-sub">📞 Voice Call</div>
+    <div id="incall-btns">
+      <button id="incall-decline" onclick="declineCall()">📵</button>
+      <button id="incall-accept" onclick="acceptCall()">📞</button>
+    </div>
+    <div id="incall-labels">
+      <span>Decline</span>
+      <span>Accept</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Video Call Overlay ── -->
+<div id="vcall-overlay">
+  <div id="vcall-remote-wrap">
+    <video id="vcall-remote-vid" autoplay playsinline></video>
+    <video id="vcall-local-vid" autoplay playsinline muted></video>
+    <div id="vcall-no-vid">
+      <div class="vcall-big-av" id="vcall-peer-av" style="background:var(--accent)">?</div>
+      <div style="color:rgba(255,255,255,.8);font-size:15px;font-weight:600" id="vcall-peer-name"></div>
+    </div>
+    <div class="vcall-info">
+      <div class="vcall-who" id="vcall-who"></div>
+      <div class="vcall-state-lbl" id="vcall-state">Calling…</div>
+    </div>
+  </div>
+  <div class="vcall-ctrl">
+    <button class="vcbtn ab" id="vcbtn-mute" onclick="toggleVcallMute()" title="Mute mic">🎤</button>
+    <button class="vcbtn cb" id="vcbtn-cam" onclick="toggleVcallCam()" title="Toggle camera">📷</button>
+    <button class="vcbtn hup" onclick="leaveVoice()" title="End call">📵</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                           -->
+<!-- ═══════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+<script>
+'use strict';
+
+// ── PWA Manifest ─────────────────────────────────────────
+(function(){
+  const m={name:'Sable',short_name:'Sable',description:'Encrypted local-first chat',start_url:'.',display:'standalone',background_color:'#1e2124',theme_color:'#7289da',icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%237289da"/><text y=".9em" font-size="72" x="15">S</text></svg>',sizes:'any',type:'image/svg+xml'}]};
+  const blob=new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
+  document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
+})();
+
+// ── CONFIG ───────────────────────────────────────────────
+// ┌─────────────────────────────────────────────────────────────────┐
+// │  PROFILE_API_URL — set this after deploying sable-worker/       │
+// │  to Cloudflare Workers (free, 5-min setup, see HOW_TO_BUILD).   │
+// │  Leave empty to fall back to Gun-based discovery (unreliable).  │
+// │  Example: 'https://sable-profile.your-name.workers.dev'        │
+// └─────────────────────────────────────────────────────────────────┘
+const PROFILE_API_URL='https://sable-profile.logans-automation.workers.dev';
+
+// Gun relay peers — used for real-time message delivery, voice signaling,
+// and presence. relay.peer.ooo is maintained by the Gun.js team.
+// Users can override via Settings → Network → Relay URL.
+const DEFAULT_PEERS=['wss://relay.peer.ooo/gun'];
+const _customRelay=(()=>{try{return localStorage.getItem('sable-relay')||'';}catch(e){return '';}})();
+const GUN_PEERS=_customRelay?[_customRelay,...DEFAULT_PEERS]:DEFAULT_PEERS;
+
+// Resolved profile API: use PROFILE_API_URL if set, otherwise nothing (Gun fallback).
+const _profileApi=(PROFILE_API_URL||'').replace(/\/+$/,''); // strip trailing slash
+let _apiAvailable=null;
+async function apiAvailable(){
+  if(_apiAvailable!==null)return _apiAvailable;
+  if(!_profileApi){return(_apiAvailable=false);}
+  try{const r=await fetch(`${_profileApi}/health`,{signal:AbortSignal.timeout(4000)});_apiAvailable=r.ok;}
+  catch(e){_apiAvailable=false;}
+  return _apiAvailable;
+}
+// Convenience: build profile API URL
+function profileUrl(path){return `${_profileApi}${path}`;}
+
+const STUN=[
+  // STUN — discovers public IP for direct NAT traversal
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:stun.cloudflare.com:3478'},
+  // TURN — relay fallback when direct connection fails (cross-network, firewall, NAT)
+  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:3478',username:'openrelayproject',credential:'openrelayproject'},
+];
+const COLORS=['#7289da','#43b581','#faa61a','#f04747','#00b0f4','#ff73fa','#1abc9c','#e67e22'];
+
+// ── STORAGE ABSTRACTION ──────────────────────────────────
+// Auto-detects: Electron (SQLite via IPC) vs Browser (IndexedDB)
+// All app code uses DB.put/get/all/byIdx/del/kv without knowing which backend
+const IS_ELECTRON = !!window.electronAPI;
+let DB;
+
+if (IS_ELECTRON) {
+  // Electron path: all calls go to SQLite via IPC
+  DB = {
+    put: (s,v) => window.electronAPI.db.put(s,v),
+    get: (s,k) => window.electronAPI.db.get(s,k),
+    all: (s) => window.electronAPI.db.all(s),
+    byIdx: (s,i,v) => window.electronAPI.db.byIdx(s,i,v),
+    del: (s,k) => window.electronAPI.db.del(s,k),
+    kv: { set:(k,v)=>window.electronAPI.db.kvSet(k,v), get:(k)=>window.electronAPI.db.kvGet(k) }
+  };
+} else {
+  // Browser path: IndexedDB
+  let _idb=null;
+  async function getIDB(){
+    if(_idb) return _idb;
+    return new Promise((res,rej)=>{
+      const r=indexedDB.open('sable-v1',2);
+      r.onupgradeneeded=e=>{
+        const d=e.target.result;
+        if(!d.objectStoreNames.contains('messages')){ const s=d.createObjectStore('messages',{keyPath:'id'}); s.createIndex('channelId','channelId',{unique:false}); }
+        if(!d.objectStoreNames.contains('servers')) d.createObjectStore('servers',{keyPath:'id'});
+        if(!d.objectStoreNames.contains('channels')){ const s=d.createObjectStore('channels',{keyPath:'id'}); s.createIndex('serverId','serverId',{unique:false}); }
+        if(!d.objectStoreNames.contains('dms')) d.createObjectStore('dms',{keyPath:'pub'});
+        if(!d.objectStoreNames.contains('kv')) d.createObjectStore('kv',{keyPath:'k'});
+        if(!d.objectStoreNames.contains('friends')) d.createObjectStore('friends',{keyPath:'pub'});
+      };
+      r.onsuccess=e=>{ _idb=e.target.result; res(_idb); };
+      r.onerror=()=>rej(r.error);
+    });
+  }
+  DB = {
+    put: async(s,v)=>{ const d=await getIDB(); return new Promise((res,rej)=>{ const tx=d.transaction(s,'readwrite'); tx.objectStore(s).put(v).onsuccess=()=>res(); tx.onerror=()=>rej(tx.error); }); },
+    get: async(s,k)=>{ const d=await getIDB(); return new Promise((res,rej)=>{ const tx=d.transaction(s,'readonly'); const r=tx.objectStore(s).get(k); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+    all: async(s)=>{ const d=await getIDB(); return new Promise((res,rej)=>{ const tx=d.transaction(s,'readonly'); const r=tx.objectStore(s).getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+    byIdx: async(s,i,v)=>{ const d=await getIDB(); return new Promise((res,rej)=>{ const tx=d.transaction(s,'readonly'); const r=tx.objectStore(s).index(i).getAll(v); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+    del: async(s,k)=>{ const d=await getIDB(); return new Promise((res,rej)=>{ const tx=d.transaction(s,'readwrite'); tx.objectStore(s).delete(k).onsuccess=()=>res(); tx.onerror=()=>rej(tx.error); }); },
+    clear: async(s)=>{ const d=await getIDB(); return new Promise((res,rej)=>{ const tx=d.transaction(s,'readwrite'); tx.objectStore(s).clear().onsuccess=()=>res(); tx.onerror=()=>rej(tx.error); }); },
+    kv: { set:(k,v)=>DB.put('kv',{k,v}), get:async(k)=>{ const r=await DB.get('kv',k); return r?r.v:undefined; } }
+  };
+}
+
+// ── FILE STORAGE (browser only, Electron uses SQLite) ────
+const FS = (typeof window !== 'undefined' && 'showSaveFilePicker' in window && !IS_ELECTRON);
+let fh = null; // FileSystemFileHandle
+let saveT = null;
+
+async function initFS(){
+  if(!FS){ updateFSUI(); return; }
+  try{
+    const stored=await DB.kv.get('fh');
+    if(stored){
+      let p=await stored.queryPermission({mode:'readwrite'});
+      if(p==='prompt') p=await stored.requestPermission({mode:'readwrite'});
+      if(p==='granted'){ fh=stored; await loadFile(); }
+    }
+  }catch(e){ console.warn('FS restore:',e); }
+  updateFSUI();
+}
+async function pickFile(fromBanner){
+  if(!FS){ toast('File storage requires Chrome or Edge.','err'); return; }
+  dismissBanner();
+  try{
+    let h=null;
+    if(window.showOpenFilePicker){
+      try{
+        const picks=await window.showOpenFilePicker({multiple:false,types:[{description:'Sable Data',accept:{'application/json':['.json']}}]});
+        if(picks&&picks[0])h=picks[0];
+      }catch(e){ if(e.name!=='AbortError') throw e; }
+    }
+    if(!h){
+      h=await window.showSaveFilePicker({suggestedName:`sable-${G.user?.alias||'data'}.json`,types:[{description:'Sable Data',accept:{'application/json':['.json']}}]});
+    }
+    fh=h; await DB.kv.set('fh',h); await loadFile(); await saveFile(true); updateFSUI();
+    toast('✅ Linked! Auto-saving to disk.','ok');
+  }catch(e){ if(e.name!=='AbortError') toast('Could not link file: '+e.message,'err'); }
+  if(fromBanner) dismissBanner();
+}
+async function unlinkFile(){ fh=null; await DB.del('kv','fh'); updateFSUI(); toast('File unlinked.','info'); }
+function schedSave(){ if(!fh&&!IS_ELECTRON) return; if(saveT) clearTimeout(saveT); saveT=setTimeout(()=>saveFile(false),1200); }
+async function saveFile(now=false){
+  if(!fh) return; setSaveDot('saving');
+  try{
+    const [msgs,srvs,dms,chs]=await Promise.all([DB.all('messages'),DB.all('servers'),DB.all('dms'),DB.all('channels')]);
+    const prof=await DB.kv.get('profile');
+    const data={version:3,savedAt:new Date().toISOString(),data:{messages:msgs,servers:srvs,dms,channels:chs,profile:prof}};
+    const w=await fh.createWritable(); await w.write(JSON.stringify(data,null,2)); await w.close();
+    setSaveDot('ok');
+  }catch(e){ setSaveDot('err'); if(e.name==='NotAllowedError') { try{ await fh.requestPermission({mode:'readwrite'}); }catch(_){} } }
+}
+async function loadFile(){
+  if(!fh) return;
+  try{
+    const t=await (await fh.getFile()).text();
+    const b=JSON.parse(t); if(!b.data) return;
+    const{messages=[],servers=[],dms=[],channels=[]}=b.data;
+    for(const m of messages) await DB.put('messages',m);
+    for(const s of servers) await DB.put('servers',s);
+    for(const d of dms) await DB.put('dms',d);
+    for(const c of channels) await DB.put('channels',c);
+  }catch(e){ console.warn('loadFile:',e); }
+}
+function updateFSUI(){
+  const t=document.getElementById('ftitle'), p=document.getElementById('fpath');
+  const lb=document.getElementById('lnk-btn'), ub=document.getElementById('ulnk-btn');
+  const fsns=document.getElementById('fsns');
+  if(IS_ELECTRON){
+    setSaveDot('ok'); if(t) t.textContent='SQLite database (auto)'; if(p) p.textContent='Stored in AppData/Sable/ — no configuration needed';
+    if(lb) lb.style.display='none'; if(ub) ub.style.display='none';
+  } else if(!FS){
+    setSaveDot('browser'); if(fsns) fsns.style.display='block';
+    if(t) t.textContent='Browser IndexedDB'; if(p) p.textContent='File linking not available — use Chrome/Edge';
+  } else if(fh){
+    setSaveDot('ok'); if(t) t.textContent='📄 '+fh.name; if(p) p.textContent='Auto-saving after every change';
+    if(lb) lb.textContent='📄 Change File'; if(ub) ub.style.display='inline-flex';
+  } else {
+    setSaveDot('browser'); if(t) t.textContent='Browser IndexedDB only'; if(p) p.textContent='Link a file for true on-disk storage';
+    if(lb){ lb.textContent='📄 Link File on Disk'; } if(ub) ub.style.display='none';
+  }
+}
+function setSaveDot(state){
+  const d=document.getElementById('sdot'), l=document.getElementById('slabel'); if(!d||!l) return;
+  d.className='sdot';
+  if(state==='saving'){d.classList.add('saving');l.textContent='Saving…';}
+  else if(state==='ok'){d.style.background='var(--green)';l.textContent=IS_ELECTRON?'Saved to Sable/':fh?'Saved to '+fh.name:'Saved';}
+  else if(state==='err'){d.classList.add('err');l.textContent='Save failed';}
+  else{d.style.background='var(--accent)';l.textContent='Browser storage';}
+}
+let bannerDone=false;
+function showBannerMaybe(){ if(fh||bannerDone||IS_ELECTRON) return; DB.kv.get('bannerDone').then(v=>{ if(!v) showM('setup-modal'); }); }
+function dismissBanner(){ try{document.getElementById('setup-banner').style.display='none';}catch(e){} bannerDone=true; DB.kv.set('bannerDone',true); }
+function dismissSetupModal(){ hideM('setup-modal'); bannerDone=true; DB.kv.set('bannerDone',true); }
+
+// ── EXPORT / IMPORT ──────────────────────────────────────
+async function exportJSON(){
+  const[msgs,srvs,dms,chs]=await Promise.all([DB.all('messages'),DB.all('servers'),DB.all('dms'),DB.all('channels')]);
+  const prof=await DB.kv.get('profile');
+  const data={version:3,exportedAt:new Date().toISOString(),data:{messages:msgs,servers:srvs,dms,channels:chs,profile:prof}};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`sable-backup-${new Date().toISOString().split('T')[0]}.json`; a.click();
+  URL.revokeObjectURL(url); toast('Backup downloaded!','ok');
+}
+async function importJSON(event){
+  const file=event.target.files[0]; if(!file) return;
+  try{
+    const b=JSON.parse(await file.text()); if(!b.data) return toast('Invalid backup.','err');
+    const{messages=[],servers=[],dms=[],channels=[]}=b.data;
+    for(const m of messages) await DB.put('messages',m);
+    for(const s of servers) await DB.put('servers',s);
+    for(const d of dms) await DB.put('dms',d);
+    for(const c of channels) await DB.put('channels',c);
+    await loadAll(); hideM('stm'); toast(`Imported ${messages.length} messages!`,'ok');
+  }catch(e){ toast('Import failed: '+e.message,'err'); }
+  event.target.value='';
+}
+
+// ── STATE ────────────────────────────────────────────────
+const G={
+  user:null, gun:null, gu:null,
+  curSrv:'dm', curCh:null, curChT:null, curDmP:null,
+  srvs:{}, dms:{}, friends:{}, presence:{}, avatarCache:{},
+  voice:null, vpeers:{}, lstream:null, muted:false, deafened:false,
+  callType:'audio',  // 'audio'|'video' for current DM call
+  pendingAttachments:[],
+  stickers:[],
+  _rxPending:{},
+  // SFU state (Cloudflare Calls group voice/video)
+  sfuPC:null, sfuSession:null, sfuRoom:null,
+  sfuParticipants:{}, sfuSubscribed:new Map(), sfuTracksMap:{},
+  sfuVideo:false, sfuVideoStream:null, sfuVideoSender:null, sfuVideoMid:null, // SFU camera state
+  _sfuPollT:null, _sfuHeartbeatT:null,
+  relayConnected:false,
+  seen:new Set(),
+  subbedDMs:new Set(), // tracks which pPubs already have a subDM() listener
+  dmScans:{},          // scan functions per pPub for relay-reconnect rescans
+  dmWorkerPolls:{},    // setInterval handles for Worker KV polling per pPub
+  dmWorkerFetchers:{}, // direct fetch functions per pPub for immediate on-demand fetch
+  dmLastFetch:{},      // last-fetched timestamps per cid for Worker KV incremental fetch
+  dmUnread:{},         // unread message counts per pPub for badge display
+  pendingOut:{},       // friend requests we sent, awaiting acceptance
+  pendingIn:{},        // incoming friend requests awaiting our decision
+  _dmPollT:null,       // interval for periodic scan of active DM
+  _presencePollCount:0,// counter to throttle Worker presence writes
+  _sigPollT:null,      // interval for Worker KV voice signaling poll
+  _ringPollT:null,     // interval for Worker KV incoming call ring poll
+  _ringSince:0,        // last-seen timestamp for ring poll
+  _ringDismissT:null,  // timeout to auto-dismiss incoming call overlay
+  _voiceCtx:null,      // AudioContext for WebRTC audio (unlocked via user gesture)
+};
+
+// ── UTILS ────────────────────────────────────────────────
+const cf=s=>{let h=0;for(const c of s)h=(h<<5)-h+c.charCodeAt(0);return COLORS[Math.abs(h)%COLORS.length]};
+const ini=n=>{if(!n)return'?';const p=n.trim().split(' ');return(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase()};
+const gid=(n=10)=>Math.random().toString(36).substr(2,n).toUpperCase();
+const dmcid=(a,b)=>[a,b].sort().join('__');
+const esc=s=>s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
+const fmtTs=ts=>{if(!ts)return'';const d=new Date(ts),t=new Date();return d.toDateString()===t.toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
+const lfy=t=>t.replace(/(https?:\/\/[^\s<>"]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--blue)">$1</a>');
+function arz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,200)+'px'}
+function toast(m,t='info',d=4000){const e=document.createElement('div');e.className=`toast ${t}`;e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),d)}
+function showM(id){document.getElementById(id).classList.add('on')}
+function hideM(id){document.getElementById(id).classList.remove('on')}
+function copyEl(el,msg){navigator.clipboard.writeText(el.textContent).then(()=>toast(msg,'ok'))}
+const MAX_FILE_BYTES=1500000;
+const MAX_STICKER_BYTES=300000;
+const RX_EMOJIS=['👍','❤️','😂','😮','😢','😡','🔥','🎉'];
+const hsz=b=>b>1048576?(b/1048576).toFixed(1)+' MB':(b/1024).toFixed(0)+' KB';
+async function saveFriendsRemote(){
+  if(!_profileApi||!G.user||!G.user.pair)return;
+  try{
+    const list=Object.values(G.friends||{});
+    const enc=await SEA.encrypt(JSON.stringify(list),G.user.pair);
+    await fetch(`${_profileApi}/api/friends`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pub:G.user.pub,enc})});
+  }catch(e){}
+}
+async function loadFriendsRemote(){
+  if(!_profileApi||!G.user)return;
+  try{
+    const r=await fetch(`${_profileApi}/api/friends/${encodeURIComponent(G.user.pub)}`);
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d||!d.enc)return;
+    const dec=await SEA.decrypt(d.enc,G.user.pair);
+    const list=Array.isArray(dec)?dec:[];
+    let changed=false;
+    for(const f of list){
+      if(!f||!f.pub||f.pub===G.user.pub)continue;
+      if(G.friends[f.pub]||G.pendingOut[f.pub]||G.pendingIn[f.pub])continue;
+      G.friends[f.pub]=f;
+      try{await DB.put('friends',f);}catch(e){}
+      changed=true;
+    }
+    if(changed)renderFriends();
+  }catch(e){}
+}
+
+// ── AUTH ─────────────────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll('.atab').forEach((e,i)=>e.classList.toggle('on',(t==='login'&&i===0)||(t==='register'&&i===1)));
+  document.getElementById('lform').style.display=t==='login'?'block':'none';
+  document.getElementById('rform').style.display=t==='register'?'block':'none';
+  document.getElementById('aerr').textContent='';
+}
+function setErr(m){document.getElementById('aerr').textContent=m}
+
+async function register(){
+  const alias=document.getElementById('ru').value.trim().toLowerCase();
+  const display=document.getElementById('rd').value.trim();
+  const pass=document.getElementById('rp').value;
+  const conf=document.getElementById('rc').value;
+  if(!alias||!pass||!display)return setErr('Please fill in all fields.');
+  if(!/^[a-z0-9_]{3,20}$/.test(alias))return setErr('Username: 3-20 chars, letters/numbers/underscore.');
+  if(pass.length<8)return setErr('Password must be at least 8 characters.');
+  if(pass!==conf)return setErr('Passwords do not match.');
+  const existing=await DB.kv.get('acct:'+alias);
+  if(existing)return setErr('Username taken on this device. Sign in instead.');
+  // ── Check global uniqueness ───────────────────────────────────────────────
+  setErr('Checking username availability…');
+  const hasApi=await apiAvailable();
+  if(hasApi){
+    // Fast path: REST API gives a definitive answer in ~100ms
+    try{
+      const r=await fetch(`${_profileApi}/api/available/${encodeURIComponent(alias)}`,{signal:AbortSignal.timeout(5000)});
+      if(r.ok){
+        const {available}=await r.json();
+        if(!available)return setErr(`Username "${alias}" is already taken. Please choose a different one.`);
+      }
+    }catch(e){/* network error — proceed, relay will enforce on POST */}
+  } else {
+    // Fallback: Gun relay check with 5s timeout
+    const taken=await new Promise(res=>{
+      let done=false;
+      const t=setTimeout(()=>{if(!done){done=true;res(null);}},5000);
+      G.gun.get('sable-users').get(alias).on((data,key,at,ev)=>{
+        if(done)return;
+        if(data&&data.pub){done=true;clearTimeout(t);if(typeof ev?.off==='function')ev.off();res(data);}
+      });
+    });
+    if(taken&&taken.pub)return setErr(`Username "${alias}" is already taken. Please choose a different one.`);
+  }
+  setErr('Generating encryption keys… (~3 seconds)');
+  // Derive a symmetric key from username+password via PBKDF2 — no network needed
+  const wk=await SEA.work(pass,alias+':sable:v1');
+  // Generate the identity keypair (random, stored encrypted locally)
+  const pair=await SEA.pair();
+  // Encrypt keypair with the derived key so it's safe to store on disk/IDB
+  const encPair=await SEA.encrypt(JSON.stringify(pair),wk);
+  await DB.kv.set('acct:'+alias,{alias,encPair,displayName:display,ts:Date.now()});
+  await DB.kv.set('lastAlias',alias);
+  G.user={pub:pair.pub,alias,displayName:display,pair};
+  await DB.kv.set('profile',{pub:pair.pub,alias,displayName:display,pair});
+  // Persist session so the page doesn't require re-login on refresh
+  try{sessionStorage.setItem('sable-session',JSON.stringify({pub:pair.pub,alias,displayName:display,pair}));}catch(e){}
+  // Register on relay REST API (authoritative) + Gun (real-time cache)
+  if(hasApi){
+    fetch(`${_profileApi}/api/profile`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({alias,pub:pair.pub,epub:pair.epub,displayName:display})}).catch(()=>{});
+    // Backup encrypted keypair for cross-device / cross-browser login
+    fetch(`${_profileApi}/api/keypair`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({alias,encPair,displayName:display})}).catch(()=>{});
+  }
+  G.gun.get('sable-users').get(alias).put({pub:pair.pub,epub:pair.epub,displayName:display,ts:Date.now()});
+  onLogin();
+}
+async function login(){
+  const alias=document.getElementById('lu').value.trim().toLowerCase();
+  const pass=document.getElementById('lp').value;
+  if(!alias||!pass)return setErr('Enter username and password.');
+  setErr('Signing in…');
+  // ── Fast path: account stored locally on this device ─────────────────
+  const stored=await DB.kv.get('acct:'+alias);
+  if(stored&&stored.encPair){
+    const wk=await SEA.work(pass,alias+':sable:v1');
+    let pair;
+    try{const raw=await SEA.decrypt(stored.encPair,wk);pair=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){pair=null;}
+    if(!pair||!pair.pub)return setErr('Wrong password.');
+    const displayName=stored.displayName||alias;
+    G.user={pub:pair.pub,alias,displayName,pair};
+    await DB.kv.set('profile',{pub:pair.pub,alias,displayName,pair});
+    try{sessionStorage.setItem('sable-session',JSON.stringify({pub:pair.pub,alias,displayName,pair}));}catch(e){}
+    G.gun.get('sable-users').get(alias).put({pub:pair.pub,epub:pair.epub,displayName,ts:Date.now()});
+    // Silently back up keypair to Worker KV (ensures cross-device login works for this account)
+    if(_profileApi&&stored.encPair){
+      fetch(`${_profileApi}/api/keypair/${encodeURIComponent(alias)}`).then(r=>{
+        if(!r.ok)fetch(`${_profileApi}/api/keypair`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({alias,encPair:stored.encPair,displayName})}).catch(()=>{});
+      }).catch(()=>{
+        fetch(`${_profileApi}/api/keypair`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({alias,encPair:stored.encPair,displayName})}).catch(()=>{});
+      });
+    }
+    onLogin();return;
+  }
+  // ── Try Worker KV keypair backup (cross-browser / cross-device) ─────────
+  const hasApi2=await apiAvailable();
+  if(hasApi2){
+    setErr('Checking cloud backup…');
+    try{
+      const kr=await fetch(`${_profileApi}/api/keypair/${encodeURIComponent(alias)}`,{signal:AbortSignal.timeout(5000)});
+      if(kr.ok){
+        const kd=await kr.json();
+        if(kd&&kd.encPair){
+          const wk2=await SEA.work(pass,alias+':sable:v1');
+          let pair2=null;
+          try{const raw=await SEA.decrypt(kd.encPair,wk2);pair2=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){}
+          if(!pair2||!pair2.pub)return setErr('Wrong password.');
+          const displayName2=kd.displayName||alias;
+          G.user={pub:pair2.pub,alias,displayName:displayName2,pair:pair2};
+          // Cache locally so future logins are instant
+          await DB.kv.set('acct:'+alias,{alias,encPair:kd.encPair,displayName:displayName2,ts:Date.now()});
+          await DB.kv.set('profile',{pub:pair2.pub,alias,displayName:displayName2,pair:pair2});
+          try{sessionStorage.setItem('sable-session',JSON.stringify({pub:pair2.pub,alias,displayName:displayName2,pair:pair2}));}catch(e){}
+          G.gun.get('sable-users').get(alias).put({pub:pair2.pub,epub:pair2.epub,displayName:displayName2,ts:Date.now()});
+          onLogin();return;
+        }
+      }
+    }catch(e){}
+  }
+  // ── Fallback: try relay network (cross-device / older account) ────────
+  setErr('No local account — checking relay network (8s)…');
+  const ack=await new Promise(res=>{
+    const t=setTimeout(()=>res({err:'timeout'}),8000);
+    G.gu.auth(alias,pass,a=>{clearTimeout(t);res(a);});
+  });
+  if(ack.err){
+    if(ack.err==='timeout'||ack.err.includes('No user'))
+      return setErr('Account not found. Create an account or import a backup from another device.');
+    return setErr('Wrong password.');
+  }
+  const pub=G.gu.is.pub,pair2=G.gu._.sea;
+  const prof=await DB.kv.get('profile');
+  const displayName=(prof&&prof.alias===alias&&prof.displayName)||alias;
+  // Cache locally so future logins are instant (no relay needed)
+  const wk=await SEA.work(pass,alias+':sable:v1');
+  const encPair=await SEA.encrypt(JSON.stringify(pair2),wk);
+  await DB.kv.set('acct:'+alias,{alias,encPair,displayName,ts:Date.now()});
+  G.user={pub,alias,displayName,pair:pair2};
+  await DB.kv.set('profile',{pub,alias,displayName,pair:pair2});
+  try{sessionStorage.setItem('sable-session',JSON.stringify({pub,alias,displayName,pair:pair2}));}catch(e){}
+  G.gun.get('sable-users').get(alias).put({pub,epub:pair2.epub,displayName,ts:Date.now()});
+  onLogin();
+}
+function logout(){
+  stopFriendPolling();
+  if(G._presenceTimers){Object.values(G._presenceTimers).forEach(t=>clearInterval(t));G._presenceTimers={};}
+  if(G._dmPollT){clearInterval(G._dmPollT);G._dmPollT=null;}
+  if(G.dmWorkerPolls){Object.values(G.dmWorkerPolls).forEach(t=>clearInterval(t));}
+  leaveVoice();try{G.gu.leave();}catch(e){}
+  setPresence(false);
+  try{sessionStorage.removeItem('sable-session');}catch(e){}
+  if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;}
+  if(G._ringPollT){clearInterval(G._ringPollT);G._ringPollT=null;}
+  declineCall(); // dismiss any incoming call overlay and stop ringing
+  Object.assign(G,{user:null,curSrv:'dm',curCh:null,curChT:null,curDmP:null,srvs:{},dms:{},friends:{},presence:{},voice:null,vpeers:{},lstream:null,seen:new Set(),subbedDMs:new Set(),dmScans:{},dmWorkerPolls:{},dmWorkerFetchers:{},dmLastFetch:{},dmUnread:{},pendingOut:{},pendingIn:{},_presencePollCount:0,_sigPollT:null,_ringPollT:null,_ringSince:0,_ringDismissT:null});
+  document.getElementById('app').classList.remove('on');document.getElementById('app').style.display='none';
+  document.getElementById('auth').style.display='flex';
+  toast('Signed out.');
+}
+async function onLogin(){
+  document.getElementById('auth').style.display='none';
+  document.getElementById('app').style.display='flex';document.getElementById('app').classList.add('on');
+  const u=G.user;
+  // Load saved avatar
+  const savedAv=await DB.kv.get('avatar');if(savedAv)u.avatar=savedAv;
+  // Load saved profile extras
+  const prof=await DB.kv.get('profile');
+  if(prof){u.status=prof.status||'online';u.bio=prof.bio||'';u.avatarColor=prof.avatarColor||cf(u.pub);}
+  else{u.status='online';u.avatarColor=cf(u.pub);}
+  // Render user bar
+  updateMyAv();
+  document.getElementById('myname').textContent=u.displayName||u.alias;
+  document.getElementById('sname').value=u.displayName||'';
+  document.getElementById('pubkey').textContent=u.pub;
+  // Set online presence
+  setPresence(true);
+  announceProfile(true); // force on login
+  // Relay UI is managed globally — reflect current state on login
+  setRelayUI(G.relayConnected);
+  await initFS();
+  await loadAll();
+  await loadFriendsRemote();
+  // Fetch any pending friend requests from Worker API (reliable cross-device delivery)
+  if(_profileApi){
+    try{
+      const fr=await fetch(`${_profileApi}/api/friend-requests/${G.user.alias}`).then(r=>r.json());
+      if(fr.requests){
+        for(const req of fr.requests){
+          if(!req.pub||!req.epub||req.pub===G.user.pub)continue;
+          if(G.friends[req.pub]||G.pendingIn[req.pub]||G.pendingOut[req.pub])continue;
+          const entry={pub:req.pub,alias:req.from,displayName:req.displayName||req.from,
+            epub:req.epub,status:'pending_in',addedAt:req.ts||Date.now()};
+          G.pendingIn[req.pub]=entry;
+          try{await DB.put('friends',entry);}catch(e){}
+        }
+        if(fr.requests.length)renderFriends();
+      }
+    }catch(e){console.warn('friend-requests fetch error',e);}
+  }
+  // Subscribe to knocks — flat composite key "recipientAlias__senderAlias",
+  // JSON string value. Three types: friend_request, friend_accept, dm.
+  const _knockSeen=new Set();
+  G.gun.get('sable-knock').map().on(async(jsonStr,key)=>{
+    if(!jsonStr||typeof jsonStr!=='string')return;
+    const sep=key.indexOf('__');if(sep<0)return;
+    const recipient=key.slice(0,sep);
+    const senderAlias=key.slice(sep+2);
+    if(recipient!==G.user.alias)return; // not for us
+    if(_knockSeen.has(key))return; // skip Gun's repeated fires for same knock
+    _knockSeen.add(key);
+    let knock;try{knock=JSON.parse(jsonStr);}catch(e){return;}
+    if(!knock||!knock.pub||!knock.epub)return;
+    if(knock.pub===G.user.pub)return; // ignore self
+    const peer={pub:knock.pub,alias:knock.alias||senderAlias,displayName:knock.displayName||knock.alias||senderAlias,epub:knock.epub};
+
+    // Plain DM knock — auto-add as DM contact so they can message us
+    if(knock.type==='dm'||!knock.type){
+      if(G.dms[peer.pub])return;
+      G.dms[peer.pub]=peer;await DB.put('dms',peer);
+      renderDMList();subDM(peer.pub);schedSave();
+    }
+    // Incoming call ring — show full-screen popup
+    if(knock.type==='ring'&&!G.voice){
+      showIncomingCall(peer.pub,peer.alias,peer.displayName||peer.alias,peer.epub,knock.cid||'',knock.callId||'',knock.callType||'audio');
+    }
+  });
+  goDMs();
+  toast(`Welcome back, ${u.displayName||u.alias}!`,'ok');
+  setTimeout(showBannerMaybe,2500);
+  startFriendPolling(); // poll Worker API for friend events every 12 s
+  // Poll Worker KV for incoming call ring notifications (cross-browser fallback)
+  if(_profileApi){
+    G._ringSince=Date.now()-60000; // look back 60s for missed rings on login
+    G._ringPollT=setInterval(async()=>{
+      if(!G.user||!_profileApi)return;
+      try{
+        const r=await fetch(`${_profileApi}/api/sig-poll/sable-ring/${encodeURIComponent(G.user.pub)}?since=${G._ringSince}`);
+        if(!r.ok)return;
+        const d=await r.json();
+        if(!d.signals||!d.signals.length)return;
+        for(const sig of d.signals){
+          if(sig.ts>G._ringSince)G._ringSince=sig.ts;
+          if(sig.type==='ring'&&!G.voice){
+            let callerAlias='',callerName='Unknown',cid='',ringCallId='',ringCallType='audio';
+            try{const rd=JSON.parse(sig.data);callerName=rd.callerName||rd.callerAlias||sig.from.slice(0,8);callerAlias=rd.callerAlias||'';cid=rd.cid||'';ringCallId=rd.callId||'';ringCallType=rd.callType||'audio';}catch(e){}
+            // Look up epub from known friends/dms if available
+            const knownPeer=G.dms[sig.from]||G.friends[sig.from];
+            const epub=knownPeer?knownPeer.epub:'';
+            showIncomingCall(sig.from,callerAlias,callerName,epub,cid,ringCallId,ringCallType);
+          }
+        }
+      }catch(e){}
+    },15000); // ring poll every 15s — Gun delivers rings instantly; this is fallback only
+  }
+}
+function updateMyAv(){
+  const u=G.user;if(!u)return;
+  const el=document.getElementById('myav');
+  if(!el)return;
+  el.style.background=u.avatarColor||cf(u.pub);
+  if(u.avatar){el.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block"><div class="online-dot"></div>`;}
+  else{el.textContent=ini(u.displayName||u.alias);el.insertAdjacentHTML('beforeend','<div class="online-dot"></div>');}
+}
+
+// ── LOAD ALL ─────────────────────────────────────────────
+async function loadAll(){
+  G.srvs={};G.dms={};G.friends={};G.pendingOut={};G.pendingIn={};
+  const srvs=await DB.all('servers'); for(const s of srvs) G.srvs[s.id]={...s,channels:{},members:{}};
+  const chs=await DB.all('channels'); for(const c of chs){ if(G.srvs[c.serverId]) G.srvs[c.serverId].channels[c.id]=c; }
+  const dms=await DB.all('dms'); for(const d of dms) G.dms[d.pub]=d;
+  try{const fr=await DB.all('friends');for(const f of fr){
+    if(f.status==='pending_out')G.pendingOut[f.pub]=f;
+    else if(f.status==='pending_in')G.pendingIn[f.pub]=f;
+    else{G.friends[f.pub]=f;G.gun.get('sable-users').get(f.alias).once(u=>{if(u&&u.avatar)G.avatarCache[f.pub]=u.avatar;});}
+  }}catch(e){}
+  renderSrvList();renderFriends();
+  for(const sid of Object.keys(G.srvs)) subSrv(sid);
+  // Pre-seed G.seen with all existing message IDs so historical messages
+  // don't get counted as new unread messages on page reload
+  try{const allMsgs=await DB.all('messages');for(const m of allMsgs){if(m.id)G.seen.add(m.id);}}catch(e){}
+  for(const pub of Object.keys(G.dms)) subDM(pub);
+  Object.keys(G.friends).forEach(pub=>trackPresence(pub));
+  try{G.stickers=await DB.kv.get('stickers')||[];}catch(e){G.stickers=[];}
+}
+
+// ── SERVERS ──────────────────────────────────────────────
+async function createServer(){
+  const name=document.getElementById('csn').value.trim(); if(!name)return toast('Enter a name.','err');
+  const id=gid(10),code=gid(6);
+  // Generate a shared encryption key for server messages
+  const srvKey=await SEA.secret(G.user.pair.epub,G.user.pair); // server key derived from owner's own pair
+  const serverSharedKey=code+'-'+G.user.pub.slice(0,8); // simple but unique server key
+  const srv={id,name,owner:G.user.pub,ownerAlias:G.user.alias,inviteCode:code,serverKey:serverSharedKey,createdAt:Date.now()};
+  await DB.put('servers',srv); G.srvs[id]={...srv,channels:{},members:{}};
+  G.gun.get('sable-srvs').get(id).put({id,name,owner:G.user.pub,ownerAlias:G.user.alias,inviteCode:code,serverKey:serverSharedKey,createdAt:Date.now()});
+  G.gun.get('sable-invites').get(code).put({serverId:id,serverName:name,serverKey:serverSharedKey});
+  // Backup invite code to Worker KV for reliable cross-browser join
+  if(_profileApi)fetch(`${_profileApi}/api/server-invite`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({code,serverId:id,serverName:name,serverKey:serverSharedKey,ownerPub:G.user.pub})}).catch(()=>{});
+  const defChs=[{id:gid(8),serverId:id,name:'general',type:'text',pos:0},{id:gid(8),serverId:id,name:'announcements',type:'text',pos:1},{id:gid(8),serverId:id,name:'General Voice',type:'voice',pos:2}];
+  for(const c of defChs){ await DB.put('channels',c); G.srvs[id].channels[c.id]=c; G.gun.get('sable-srvs').get(id).get('channels').get(c.id).put(c); }
+  G.gun.get('sable-srvs').get(id).get('members').get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName,role:'owner',joinedAt:Date.now()});
+  G.gun.get('sable-usrvs').get(G.user.pub).get(id).put({serverId:id,serverName:name,serverKey:serverSharedKey,joinedAt:Date.now()});
+  hideM('csm');document.getElementById('csn').value='';
+  renderSrvList();goSrv(id);subSrv(id);schedSave();
+  document.getElementById('invname').textContent=name;document.getElementById('invcode').textContent=code;
+  setTimeout(()=>showM('invm'),400);
+  toast(`Server "${name}" created!`,'ok');
+}
+async function joinServer(){
+  const code=document.getElementById('jsc').value.trim().toUpperCase(); if(!code)return toast('Enter invite code.','err');
+  // Try Worker KV first (reliable cross-browser), fall back to Gun relay
+  let invData=null;
+  if(_profileApi){
+    try{
+      const r=await fetch(`${_profileApi}/api/server-invite/${encodeURIComponent(code)}`,{signal:AbortSignal.timeout(5000)});
+      if(r.ok)invData=await r.json();
+    }catch(e){}
+  }
+  async function doJoin(data){
+    if(!data||!data.serverId)return toast('Invalid invite code.','err');
+    const{serverId,serverName,serverKey}=data;
+    if(G.srvs[serverId]){hideM('jsm');return goSrv(serverId);}
+    G.gun.get('sable-srvs').get(serverId).once(async sd=>{
+      if(!sd)return toast('Server not found. Ask the owner to invite you again.','err');
+      const s={...sd,id:serverId,serverKey:serverKey||sd.serverKey};
+      await DB.put('servers',s); G.srvs[serverId]={...s,channels:{},members:{}};
+      G.gun.get('sable-srvs').get(serverId).get('channels').map().once(async(c,cid)=>{ if(!c||!c.name)return; const ch={...c,serverId,id:cid}; await DB.put('channels',ch); G.srvs[serverId].channels[cid]=ch; });
+      G.gun.get('sable-srvs').get(serverId).get('members').get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName,role:'member',joinedAt:Date.now()});
+      G.gun.get('sable-usrvs').get(G.user.pub).get(serverId).put({serverId,serverName,serverKey:serverKey||sd.serverKey,joinedAt:Date.now()});
+      hideM('jsm');document.getElementById('jsc').value='';
+      setTimeout(()=>{renderSrvList();goSrv(serverId);subSrv(serverId);schedSave();},600);
+      toast(`Joined "${serverName}"!`,'ok');
+    });
+  }
+  if(invData&&invData.serverId){await doJoin(invData);return;}
+  // Fall back to Gun relay
+  G.gun.get('sable-invites').get(code).once(async data=>{
+    if(!data||!data.serverId)return toast('Invalid invite code.','err');
+    await doJoin(data);
+  });
+}
+function subSrv(sid){
+  G.gun.get('sable-srvs').get(sid).get('channels').map().on(async(c,cid)=>{
+    if(!c||!c.name||!cid)return;
+    const ch={...c,serverId:sid,id:cid};
+    if(!G.srvs[sid])G.srvs[sid]={channels:{},members:{}};
+    G.srvs[sid].channels[cid]=ch; await DB.put('channels',ch);
+    if(G.curSrv===sid) renderChList(sid); schedSave();
+  });
+}
+async function createCh(){
+  const sid=G.curSrv; if(!sid||sid==='dm')return;
+  const name=document.getElementById('chn').value.trim().toLowerCase().replace(/\s+/g,'-');
+  const type=document.getElementById('chtype').value;
+  if(!name)return toast('Enter channel name.','err');
+  const c={id:gid(8),serverId:sid,name,type,pos:Date.now()};
+  await DB.put('channels',c); G.srvs[sid].channels[c.id]=c;
+  G.gun.get('sable-srvs').get(sid).get('channels').get(c.id).put(c);
+  hideM('acm');document.getElementById('chn').value='';renderChList(sid);schedSave();
+  toast(`#${name} created!`,'ok');
+}
+function leaveSrv(sid){
+  G.gun.get('sable-srvs').get(sid).get('members').get(G.user.pub).put(null);
+  G.gun.get('sable-usrvs').get(G.user.pub).get(sid).put(null);
+  DB.del('servers',sid);
+  DB.byIdx('channels','serverId',sid).then(chs=>chs.forEach(c=>DB.del('channels',c.id)));
+  delete G.srvs[sid]; if(G.curSrv===sid)goDMs();
+  renderSrvList();schedSave();toast('Left server.');
+}
+
+// ── RENDER SERVER LIST ───────────────────────────────────
+function renderSrvList(){
+  const c=document.getElementById('sicons');c.innerHTML='';
+  Object.values(G.srvs).filter(s=>s&&s.name).forEach(s=>{
+    const el=document.createElement('div');
+    el.className=`sicon srv${G.curSrv===s.id?' on':''}`;
+    el.title=s.name;el.setAttribute('data-sid',s.id);
+    el.style.background=G.curSrv===s.id?'var(--accent)':cf(s.id);
+    el.innerHTML=`<div class="spip"></div>${esc(s.name.slice(0,2).toUpperCase())}`;
+    el.onclick=()=>goSrv(s.id);el.oncontextmenu=e=>{e.preventDefault();showSrvCtx(e,s.id)};
+    c.appendChild(el);
+  });
+  const j=document.createElement('div');j.className='sicon plus';j.title='Join Server';j.innerHTML='🔗';
+  j.onclick=()=>showM('jsm');c.appendChild(j);
+}
+function showSrvCtx(e,sid){
+  const m=document.getElementById('ctx');
+  m.innerHTML=`<div class="ctxi" onclick="showInvite('${sid}');hideCtx()">📨 Invite People</div>
+    <div class="ctxi" onclick="showM('acm');hideCtx()">➕ Add Channel</div>
+    <div class="ctxsep"></div>
+    <div class="ctxi danger" onclick="leaveSrv('${sid}');hideCtx()">🚪 Leave Server</div>`;
+  m.style.left=e.clientX+'px';m.style.top=Math.min(e.clientY,window.innerHeight-120)+'px';m.classList.add('on');
+}
+function hideCtx(){document.getElementById('ctx').classList.remove('on')}
+document.addEventListener('click',hideCtx);
+function showInvite(sid){
+  const s=G.srvs[sid];if(!s)return;
+  document.getElementById('invname').textContent=s.name;
+  document.getElementById('invcode').textContent=s.inviteCode||'???';
+  showM('invm');
+}
+
+// ── NAVIGATION ───────────────────────────────────────────
+function goDMs(){
+  G.curSrv='dm';G.curCh=null;
+  document.querySelectorAll('.sicon').forEach(e=>e.classList.remove('on'));
+  document.getElementById('dm-btn').classList.add('on');
+  document.getElementById('srv-hdr-name').textContent='Direct Messages';
+  renderDMList();clearChat();
+  document.getElementById('mbrs').style.display='block';
+  document.getElementById('mbrs-srv').style.display='none';
+  document.getElementById('mbrs-dm').style.display='block';
+}
+function goSrv(sid){
+  G.curSrv=sid;const s=G.srvs[sid];if(!s)return;
+  document.querySelectorAll('.sicon.srv').forEach(e=>e.classList.remove('on'));
+  const icon=document.querySelector(`.sicon[data-sid="${sid}"]`);if(icon)icon.classList.add('on');
+  document.getElementById('dm-btn').classList.remove('on');
+  document.getElementById('srv-hdr-name').textContent=s.name;
+  renderChList(sid);loadMbrs(sid);
+  document.getElementById('mbrs').style.display='block';
+  document.getElementById('mbrs-srv').style.display='block';
+  document.getElementById('mbrs-dm').style.display='none';
+  const tChs=Object.values(s.channels||{}).filter(c=>c&&c.type==='text').sort((a,b)=>a.pos-b.pos);
+  if(tChs.length)selCh(sid,tChs[0].id,'text');else clearChat();
+}
+function renderChList(sid){
+  const s=G.srvs[sid];if(!s)return;
+  const chs=Object.values(s.channels||{}).filter(c=>c&&c.name).sort((a,b)=>a.pos-b.pos);
+  const txt=chs.filter(c=>c.type==='text'),voc=chs.filter(c=>c.type==='voice');
+  let h=`<div><div class="csh"><span>Text Channels</span><div class="cadd" onclick="showM('acm')">+</div></div>`;
+  txt.forEach(c=>{h+=`<div class="citem${G.curCh===c.id?' on':''}" onclick="selCh('${sid}','${c.id}','text')"><span style="font-family:monospace;opacity:.7">#</span><span class="cname">${esc(c.name)}</span></div>`;});
+  h+=`</div><div><div class="csh"><span>Voice Channels</span><div class="cadd" onclick="showM('acm')">+</div></div>`;
+  voc.forEach(c=>{h+=`<div class="citem${G.curCh===c.id&&G.curChT==='voice'?' on':''}" onclick="joinVoice('${sid}','${c.id}','${esc(c.name)}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg><span class="cname">${esc(c.name)}</span></div>`;});
+  h+='</div>';document.getElementById('ch-list').innerHTML=h;
+}
+
+// ── DMs ──────────────────────────────────────────────────
+function renderDMList(){
+  const peers=Object.values(G.dms);
+  let h=`<div><div class="csh"><span>Direct Messages</span><div class="cadd" onclick="showM('dmm')">+</div></div>`;
+  if(!peers.length)h+=`<div style="padding:8px 16px;font-size:13px;color:var(--t3)">No DMs yet. Click + to message someone.</div>`;
+  peers.forEach(p=>{const cid=dmcid(G.user.pub,p.pub);
+    const av=G.avatarCache[p.pub];
+    const avH=av?`<img src="${av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(p.displayName||p.alias)}`;
+    const unread=(G.dmUnread&&G.dmUnread[p.pub])||0;
+    const badge=unread?`<div style="background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;margin-right:4px;flex-shrink:0">${unread>99?'99+':unread}</div>`:'';
+    h+=`<div class="ditem${G.curCh===cid?' on':''}${unread?' unread':''}" onclick="selDM('${p.pub}')"><div class="dav" style="background:${cf(p.pub)};color:#fff">${avH}</div><div style="flex:1;overflow:hidden"><div class="dname" style="${unread?'font-weight:700;color:#fff':''}">${esc(p.displayName||p.alias)}</div></div>${badge}<div class="dcls" onclick="event.stopPropagation();deleteDM('${p.pub}')" title="Close conversation">✕</div></div>`;
+  });h+='</div>';document.getElementById('ch-list').innerHTML=h;
+}
+async function deleteDM(pub){
+  const peer=G.dms[pub];if(!peer)return;
+  const cid=dmcid(G.user.pub,pub);
+  // Remove from memory + subscriptions
+  delete G.dms[pub];
+  delete G.dmScans[pub];
+  G.subbedDMs.delete(pub);
+  if(G.dmWorkerPolls[pub]){clearInterval(G.dmWorkerPolls[pub]);delete G.dmWorkerPolls[pub];}
+  delete G.dmLastFetch[cid];
+  // Remove from IDB: the DM contact record
+  try{await DB.del('dms',pub);}catch(e){}
+  // Remove all stored messages for this conversation
+  try{
+    const msgs=await DB.byIdx('messages','channelId',cid);
+    for(const m of msgs) await DB.del('messages',m.id);
+  }catch(e){}
+  // If this was the open conversation, clear the view
+  if(G.curCh===cid){
+    if(G._dmPollT){clearInterval(G._dmPollT);G._dmPollT=null;}
+    G.curCh=null;G.curChT=null;G.curDmP=null;
+    document.getElementById('chat').style.display='none';
+    document.getElementById('iarea').style.display='none';
+    document.getElementById('call-btn').style.display='none';document.getElementById('vcall-btn').style.display='none';
+  }
+  renderDMList();
+  schedSave();
+  toast('Conversation closed.','ok');
+}
+async function startDM(){
+  const alias=document.getElementById('dmu').value.trim().toLowerCase();
+  if(!alias)return toast('Enter a username.','err');
+  if(alias===G.user.alias)return toast("Can't DM yourself.",'err');
+  toast('Looking up user…');
+  // ── API first (fast, persistent) ─────────────────────────────────────────
+  const hasApi=await apiAvailable();
+  if(hasApi){
+    try{
+      const r=await fetch(`${_profileApi}/api/profile/${encodeURIComponent(alias)}`,{signal:AbortSignal.timeout(6000)});
+      if(r.ok){
+        const d=await r.json();
+        const peer={pub:d.pub,alias:d.alias,displayName:d.displayName||d.alias,epub:d.epub||''};
+        G.dms[peer.pub]=peer;await DB.put('dms',peer);
+        // DM knock — lets the recipient auto-add us as a DM contact
+        G.gun.get('sable-knock').get(`${peer.alias}__${G.user.alias}`).put(JSON.stringify({
+          type:'dm',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,epub:G.user.pair.epub,ts:Date.now()
+        }));
+        hideM('dmm');document.getElementById('dmu').value='';
+        renderDMList();selDM(peer.pub);subDM(peer.pub);schedSave();
+        return;
+      }
+      if(r.status===404)return toast('User not found. Check the exact username.','err');
+    }catch(e){/* network error — fall through to Gun */}
+  }
+  // ── Fallback: Gun relay ───────────────────────────────────────────────────
+  G.gun.get('sable-users').get(alias).once(async data=>{
+    if(!data||!data.pub)return toast('User not found. Check the exact username.','err');
+    const{pub,epub,displayName}=data;
+    const peer={pub,alias,displayName:displayName||alias,epub};
+    G.dms[pub]=peer;await DB.put('dms',peer);
+    // DM knock — lets the recipient auto-add us as a DM contact
+    G.gun.get('sable-knock').get(`${alias}__${G.user.alias}`).put(JSON.stringify({
+      type:'dm',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,epub:G.user.pair.epub,ts:Date.now()
+    }));
+    hideM('dmm');document.getElementById('dmu').value='';
+    renderDMList();selDM(pub);subDM(pub);schedSave();
+  });
+}
+function subDM(pPub){
+  if(G.subbedDMs.has(pPub))return; // already subscribed — avoid duplicate listeners
+  G.subbedDMs.add(pPub);
+  const cid=dmcid(G.user.pub,pPub);
+
+  // Shared decrypt + store handler
+  // IMPORTANT: epub check happens BEFORE adding to G.seen so failed decrypts can retry
+  async function processEnc(enc,msgId){
+    if(!enc||!msgId||G.seen.has(msgId))return;
+    const peer=G.dms[pPub];if(!peer||!peer.epub)return; // check epub FIRST
+    G.seen.add(msgId); // only mark seen after epub is confirmed available
+    let msg=null;
+    try{const s=await SEA.secret(peer.epub,G.user.pair);const d=await SEA.decrypt(enc,s);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}
+    if(!msg){G.seen.delete(msgId);return;} // remove from seen so it can be retried
+    if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
+    if(!msg.content && !(msg.attachments&&msg.attachments.length)){G.seen.delete(msgId);return;}
+    const stored={...msg,channelId:cid,id:msgId};
+    await DB.put('messages',stored);schedSave();
+    if(G.curCh===cid){
+      appendMsg(stored);
+    } else if(msg.authorPub && msg.authorPub !== G.user.pub) {
+      // Only count messages from the OTHER person (not own sent messages) as unread
+      if(!G.dmUnread)G.dmUnread={};
+      G.dmUnread[pPub]=(G.dmUnread[pPub]||0)+1;
+      if(G.curSrv==='dm')renderDMList();
+      // Browser notification (if permission granted)
+      if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+        const _peer=G.dms[pPub];
+        try{
+          const body=msg.content?msg.content.slice(0,80):'[Attachment]';
+          new Notification(_peer?((_peer.displayName||_peer.alias)+' says:'):'New message',
+            {body,tag:'sable-dm-'+pPub});
+        }catch(e){}
+      }
+    }
+  }
+
+  // Gun relay scan (best-effort real-time)
+  function scanMsgs(){G.gun.get('sable-dms').get(cid).map().once(processEnc);}
+  G.dmScans[pPub]=scanMsgs;
+  scanMsgs(); // immediate scan on subscribe
+  G.gun.get('sable-dms').get(cid).map().on(processEnc);
+  G.gun.get('sable-dm-ping').get(cid).on(ts=>{
+    if(!ts)return;
+    setTimeout(scanMsgs,500);
+    setTimeout(scanMsgs,3000);
+  });
+
+  // ── Worker KV polling — reliable fallback when Gun relay fails ──────────────
+  // Fetch all messages for this conversation from the Worker on subscribe
+  async function workerFetch(since){
+    if(!G.user||!_profileApi)return;
+    const peer=G.dms[pPub];if(!peer||!peer.epub)return;
+    try{
+      const url=`${_profileApi}/api/dm-messages/${encodeURIComponent(cid)}`+(since?`?since=${since}`:'');
+      const r=await fetch(url);if(!r.ok)return;
+      const d=await r.json();
+      if(d.messages&&d.messages.length){
+        for(const m of d.messages)await processEnc(m.enc,m.msgId);
+        // Use max message ts (not Date.now()) to handle clock drift between devices
+        const maxTs=Math.max(...d.messages.map(m=>m.ts||0));
+        if(maxTs>0)G.dmLastFetch[cid]=maxTs;
+      }
+    }catch(e){}
+  }
+
+  // Expose fetcher so selDM can trigger an immediate on-demand fetch
+  G.dmWorkerFetchers[pPub]=workerFetch;
+
+  // Initial fetch on subscribe (get full history from Worker)
+  setTimeout(()=>workerFetch(0),800);
+
+  // Poll every 15s for new messages missed by Gun relay (Gun handles real-time delivery)
+  if(!G.dmWorkerPolls[pPub]){
+    G.dmWorkerPolls[pPub]=setInterval(()=>{
+      if(!G.user||!G.dms[pPub])return;
+      // Subtract 10s buffer from last-fetch cursor to tolerate clock drift between devices
+      const cursor=G.dmLastFetch[cid]?Math.max(0,G.dmLastFetch[cid]-10000):0;
+      workerFetch(cursor);
+    },15000);
+  }
+}
+async function selDM(pPub){
+  const peer=G.dms[pPub];if(!peer)return;
+  G.curDmP=peer;const cid=dmcid(G.user.pub,pPub);
+  G.curCh=cid;G.curChT='dm';G.curSrv='dm';
+  G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
+  // Clear unread badge for this conversation
+  if(G.dmUnread)G.dmUnread[pPub]=0;
+  // Start periodic scan for this DM so messages arrive even without a ping
+  if(G._dmPollT)clearInterval(G._dmPollT);
+  G._dmPollT=setInterval(()=>{if(G.dmScans[pPub])G.dmScans[pPub]();},10000);
+  document.getElementById('voice').style.display='none';document.getElementById('chat').style.display='flex';
+  document.getElementById('chat-title').textContent=peer.displayName||peer.alias;
+  document.getElementById('enc-badge').style.display='inline-flex';
+  document.getElementById('local-badge').style.display='inline-flex';
+  document.getElementById('call-btn').style.display='flex';
+  document.getElementById('vcall-btn').style.display='flex';
+  document.getElementById('iarea').style.display='block';
+  document.getElementById('mbrs').style.display='block';
+  document.getElementById('mbrs-srv').style.display='none';
+  document.getElementById('mbrs-dm').style.display='block';
+  renderDMList();
+  const msgs=await DB.byIdx('messages','channelId',cid);msgs.sort((a,b)=>a.ts-b.ts);
+  renderMsgList(msgs,`💬 ${esc(peer.displayName||peer.alias)}`,'Encrypted conversation. Stored on your device.');
+  subDM(pPub);
+  // Immediately fetch latest messages from Worker (don't wait for next 3s poll)
+  if(G.dmWorkerFetchers[pPub]){
+    G.dmWorkerFetchers[pPub](0).then(async()=>{
+      // After Worker fetch, reload messages from DB to show any newly arrived messages
+      if(G.curCh===cid){
+        const fresh=await DB.byIdx('messages','channelId',cid);fresh.sort((a,b)=>a.ts-b.ts);
+        renderMsgList(fresh,`💬 ${esc(peer.displayName||peer.alias)}`,'Encrypted conversation. Stored on your device.');
+      }
+    }).catch(()=>{});
+  }
+}
+
+// ── CHANNELS ─────────────────────────────────────────────
+function selCh(sid,chId,type){
+  if(G.voice)leaveVoice();
+  G.curCh=chId;G.curChT=type;G.curSrv=sid;
+  G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
+  const s=G.srvs[sid],ch=s&&s.channels&&s.channels[chId];if(!ch)return;
+  document.getElementById('voice').style.display='none';document.getElementById('chat').style.display='flex';
+  document.getElementById('chat-title').textContent='#'+ch.name;
+  document.getElementById('enc-badge').style.display='inline-flex'; // server msgs now encrypted too
+  document.getElementById('local-badge').style.display='inline-flex';
+  document.getElementById('call-btn').style.display='none';document.getElementById('vcall-btn').style.display='none';
+  document.getElementById('iarea').style.display='block';
+  renderChList(sid);loadChMsgs(sid,chId);
+}
+async function loadChMsgs(sid,chId){
+  const msgs=await DB.byIdx('messages','channelId',chId);msgs.sort((a,b)=>a.ts-b.ts);
+  const s=G.srvs[sid],ch=s&&s.channels&&s.channels[chId];
+  renderMsgList(msgs,ch?'#'+esc(ch.name):'Channel','Welcome to this channel!');
+  const srv=G.srvs[sid];
+  const sKey=srv&&srv.serverKey;
+  G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
+    if(!enc||!msgId||G.seen.has(msgId))return;G.seen.add(msgId);
+    let msg=null;
+    // Try to decrypt with server key if available
+    if(sKey){try{const d=await SEA.decrypt(enc,sKey);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}}
+    // Fallback: raw JSON (old messages)
+    if(!msg){try{msg=typeof enc==='string'?JSON.parse(enc):enc;}catch(e){return;}}
+    if(!msg)return;
+    if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
+    if(!msg.content && !(msg.attachments&&msg.attachments.length))return;
+    const stored={...msg,channelId:chId,id:msgId};
+    await DB.put('messages',stored);schedSave();
+    if(G.curCh===chId)appendMsg(stored);
+  });
+}
+function clearChat(){
+  G.curCh=null;G.curChT=null;
+  G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
+  document.getElementById('chat-title').textContent='Select a channel';
+  document.getElementById('msgs').innerHTML=`<div class="empty"><svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" style="opacity:.25"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg><h3>Welcome to Sable</h3><p>Select a channel or DM to start chatting</p></div>`;
+  document.getElementById('iarea').style.display='none';
+  document.getElementById('enc-badge').style.display='none';
+  document.getElementById('local-badge').style.display='none';
+  document.getElementById('call-btn').style.display='none';document.getElementById('vcall-btn').style.display='none';
+}
+
+// ── MESSAGES ─────────────────────────────────────────────
+let _la=null,_lt=0;
+function renderMsgList(msgs,title,sub){
+  const c=document.getElementById('msgs');
+  c.innerHTML=`<div class="mwelcome"><h3>${title}</h3><p>${sub}</p></div>`;
+  _la=null;_lt=0;msgs.forEach(m=>renderMsgInto(m,c));c.scrollTop=c.scrollHeight;
+}
+function appendMsg(msg){const c=document.getElementById('msgs');renderMsgInto(msg,c);c.scrollTop=c.scrollHeight;}
+function renderMsgInto(msg,c){
+  msg=applyQueuedReactionsToMsg(msg);
+  const g=_la===msg.authorPub&&(msg.ts-_lt)<300000;
+  _la=msg.authorPub;_lt=msg.ts||Date.now();
+  const el=document.createElement('div');
+  el.dataset.mid=msg.id;
+  const atts=renderAttachments(msg);
+  const rxs=renderReactions(msg);
+  if(!g){
+    el.className='mg mav-row';
+    const _av=msg.authorPub&&(G.user&&G.user.pub===msg.authorPub?G.user.avatar:G.avatarCache[msg.authorPub]);
+    const _avH=_av?`<img src="${_av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(msg.authorName||'?')}`;
+    el.innerHTML=`<div class="mav" style="background:${cf(msg.authorPub||'')};color:#fff">${_avH}</div>
+      <div class="mb"><div class="mh"><span class="mauthor">${esc(msg.authorName||'Unknown')}</span><span class="mts">${fmtTs(msg.ts)}</span></div>
+      <div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div></div>`;
+  }else{
+    el.className='mg mcont';el.innerHTML=`<div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div>`;
+  }
+  el.dataset.ts=msg.ts;c.appendChild(el);
+}
+function renderAttachments(msg){
+  const atts=(msg&&msg.attachments)||[];
+  if(!atts.length)return '';
+  return `<div class="msg-atts">${atts.map(a=>{
+    if(a.kind==='sticker'){
+      return `<img class="mimg sticker" src="${a.data}" alt="${esc(a.name||'sticker')}">`;
+    }
+    if(a.kind==='image'){
+      return `<a href="${a.data}" target="_blank" rel="noopener"><img class="mimg" src="${a.data}" alt="${esc(a.name||'image')}"></a>`;
+    }
+    return `<a class="mfile" download="${esc(a.name||'file')}" href="${a.data}"><strong>${esc(a.name||'file')}</strong><span>${hsz(a.size||0)}</span></a>`;
+  }).join('')}</div>`;
+}
+function renderReactions(msg){
+  const rx=msg&&msg.reactions?msg.reactions:{};
+  const keys=Object.keys(rx||{});
+  const items=keys.map(k=>({k,v:rx[k]})).filter(x=>x.v&&x.v.by&&Object.keys(x.v.by).length);
+  const chips=items.map(({k,v})=>{
+    const on=v.by&&v.by[G.user.pub];
+    const label=v.kind==='emoji'
+      ? esc(v.value)
+      : (v.data?`<img src="${v.data}" style="width:18px;height:18px;vertical-align:-4px">`:'🧷');
+    const count=Object.keys(v.by).length;
+    return `<span class="rx ${on?'on':''}" onclick="toggleReactionKey('${msg.id}','${encodeURIComponent(k)}')">${label} ${count}</span>`;
+  }).join('');
+  const add=`<span class="rx rx-add" onclick="openReactPicker(event,'${msg.id}')">+</span>`;
+  return `<div class="mrx">${chips}${add}</div>`;
+}
+function applyQueuedReactionsToMsg(msg){
+  const list=G._rxPending&&G._rxPending[msg.id];
+  if(!list||!list.length)return msg;
+  delete G._rxPending[msg.id];
+  for(const rx of list){ applyReactionToMsg(msg,rx,false); }
+  DB.put('messages',msg).then(()=>schedSave()).catch(()=>{});
+  return msg;
+}
+async function toggleReactionKey(msgId,keyEnc){
+  const key=decodeURIComponent(keyEnc||'');
+  const msg=await DB.get('messages',msgId);
+  if(!msg||!msg.reactions||!msg.reactions[key])return;
+  const entry=msg.reactions[key];
+  const add=!(entry.by&&entry.by[G.user.pub]);
+  applyReactionToMsg(msg,{targetId:msgId,rKey:key,rKind:entry.kind,value:entry.value,name:entry.name,data:entry.data,authorPub:G.user.pub,add},true);
+  await DB.put('messages',msg);schedSave();updateMsgReactions(msg);
+  await sendReactionMessage(msgId,entry.kind,entry,add);
+}
+async function addReaction(msgId,kind,value,meta){
+  const msg=await DB.get('messages',msgId);
+  if(!msg)return;
+  const key=kind==='emoji'?`e:${value}`:`s:${meta.id}`;
+  const entry=msg.reactions&&msg.reactions[key];
+  const add=!(entry&&entry.by&&entry.by[G.user.pub]);
+  applyReactionToMsg(msg,{targetId:msgId,rKey:key,rKind:kind,value,name:meta&&meta.name,data:meta&&meta.data,authorPub:G.user.pub,add},true);
+  await DB.put('messages',msg);schedSave();updateMsgReactions(msg);
+  await sendReactionMessage(msgId,kind,{value,name:meta&&meta.name,data:meta&&meta.data},add);
+}
+function applyReactionToMsg(msg,rx,notify){
+  msg.reactions=msg.reactions||{};
+  const key=rx.rKey||((rx.rKind==='emoji')?`e:${rx.value}`:`s:${rx.value&&rx.value.id?rx.value.id:rx.rKey}`);
+  let entry=msg.reactions[key];
+  if(!entry){
+    entry={kind:rx.rKind,value:rx.value||rx.value?.id||'',name:rx.name||'',data:rx.data||'',by:{}};
+  }
+  entry.by=entry.by||{};
+  if(rx.add) entry.by[rx.authorPub]=true;
+  else delete entry.by[rx.authorPub];
+  if(Object.keys(entry.by).length===0){ delete msg.reactions[key]; }
+  else msg.reactions[key]=entry;
+  if(notify)updateMsgReactions(msg);
+}
+function updateMsgReactions(msg){
+  const el=document.querySelector(`[data-mid="${msg.id}"] .mrx`);
+  if(!el)return;
+  el.outerHTML=renderReactions(msg);
+}
+async function handleIncomingReaction(msg){
+  const target=await DB.get('messages',msg.targetId);
+  if(!target){
+    if(!G._rxPending)G._rxPending={};
+    if(!G._rxPending[msg.targetId])G._rxPending[msg.targetId]=[];
+    G._rxPending[msg.targetId].push(msg);
+    return;
+  }
+  applyReactionToMsg(target,{targetId:msg.targetId,rKey:msg.rKey,rKind:msg.rKind,value:msg.value,name:msg.name,data:msg.data,authorPub:msg.authorPub,add:!!msg.add},false);
+  await DB.put('messages',target);schedSave();
+  updateMsgReactions(target);
+}
+async function sendReactionMessage(targetId,kind,entry,add){
+  if(!G.curCh)return;
+  const msg={id:gid(12),kind:'reaction',targetId,rKind:kind,rKey:kind==='emoji'?`e:${entry.value}`:`s:${(entry.value&&entry.value.id)||entry.id||entry.value}`,value:entry.value||'',name:entry.name||'',data:entry.data||'',add,authorPub:G.user.pub,authorName:G.user.displayName||G.user.alias,ts:Date.now()};
+  if(G.curChT==='dm'){
+    const peer=G.curDmP;if(!peer||!peer.epub)return;
+    const secret=await SEA.secret(peer.epub,G.user.pair);
+    const enc=await SEA.encrypt(JSON.stringify(msg),secret);
+    G.gun.get('sable-dms').get(G.curCh).get(msg.id).put(enc);
+    if(_profileApi){
+      fetch(`${_profileApi}/api/dm-send`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cid:G.curCh,msgId:msg.id,enc,ts:msg.ts,senderPub:G.user.pub})
+      }).catch(()=>{});
+    }
+  }else{
+    const srv=G.srvs[G.curSrv];const sKey=srv&&srv.serverKey;
+    let payload;
+    if(sKey){try{payload=await SEA.encrypt(JSON.stringify(msg),sKey);}catch(e){payload=JSON.stringify(msg);}}
+    else{payload=JSON.stringify(msg);}
+    G.gun.get('sable-msgs').get(G.curSrv).get(G.curCh).get(msg.id).put(payload);
+  }
+}
+function openReactPicker(ev,msgId){
+  ev.preventDefault();ev.stopPropagation();
+  const pop=document.getElementById('react-pop');
+  G._reactTarget=msgId;
+  const emojiRow=RX_EMOJIS.map(e=>`<button class="rx-btn" onclick="addReaction('${msgId}','emoji','${esc(e)}')">${e}</button>`).join('');
+  const stickerRow=(G.stickers||[]).map(s=>`<button class="rx-btn" onclick="addStickerReaction('${msgId}','${s.id}')"><img src="${s.data}" style="width:20px;height:20px"></button>`).join('');
+  const uploadBtn=`<button class="rx-btn" onclick="openStickerPicker()">＋</button>`;
+  pop.innerHTML=`<div class="rx-row">${emojiRow}</div><div class="rx-row">${stickerRow}${uploadBtn}</div>`;
+  pop.style.display='block';
+  pop.style.left=Math.min(window.innerWidth-240,ev.clientX)+'px';
+  pop.style.top=Math.min(window.innerHeight-180,ev.clientY)+'px';
+}
+function closeReactPicker(){const pop=document.getElementById('react-pop');if(pop)pop.style.display='none';}
+document.addEventListener('click',e=>{ if(!e.target.closest('.rx-pop')) closeReactPicker(); });
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#stickers-pop')&&!e.target.closest('.abtn')) toggleStickerPicker(false);
+});
+
+function openFilePicker(){const el=document.getElementById('filepick');if(el)el.click();}
+function openStickerUpload(){const el=document.getElementById('stickerpick');if(el)el.click();}
+function openStickerPicker(){toggleStickerPicker(true);}
+function toggleStickerPicker(force){
+  const pop=document.getElementById('stickers-pop');if(!pop)return;
+  if(force===true)pop.style.display='block';
+  else if(force===false)pop.style.display='none';
+  else pop.style.display=pop.style.display==='block'?'none':'block';
+  renderStickerPicker();
+}
+function renderStickerPicker(){
+  const pop=document.getElementById('stickers-pop');if(!pop)return;
+  const items=(G.stickers||[]).map(s=>`<div class="sticker-item" onclick="sendSticker('${s.id}')"><img src="${s.data}"></div>`).join('');
+  pop.innerHTML=`<div class="rx-row"><button class="rx-btn" onclick="openStickerUpload()">Upload</button></div><div class="sticker-grid">${items||'<span style="opacity:.7">No stickers yet</span>'}</div>`;
+}
+async function handleFilePick(event){
+  const files=[...event.target.files];event.target.value='';
+  for(const f of files){ await addAttachmentFromFile(f); }
+  renderAttachmentBar();
+}
+async function handleStickerUpload(event){
+  const f=event.target.files[0];event.target.value='';
+  if(!f)return;
+  if(f.size>MAX_STICKER_BYTES)return toast('Sticker too large (max 300 KB).','err');
+  const data=await readFileAsDataURL(f);
+  const sticker={id:gid(8),name:f.name||'sticker',data};
+  G.stickers=[...(G.stickers||[]),sticker];
+  await DB.kv.set('stickers',G.stickers);
+  renderStickerPicker();
+  toast('Sticker added!','ok');
+}
+function sendSticker(id){
+  const s=(G.stickers||[]).find(x=>x.id===id);
+  if(!s)return;
+  G.pendingAttachments=[{id:gid(8),name:s.name,size:(s.data||'').length,type:'image',kind:'sticker',data:s.data}];
+  renderAttachmentBar();toggleStickerPicker(false);send();
+}
+function addStickerReaction(msgId,stickerId){
+  const s=(G.stickers||[]).find(x=>x.id===stickerId);
+  if(!s)return;
+  addReaction(msgId,'sticker',s.id,s);
+  closeReactPicker();
+}
+async function addAttachmentFromFile(f){
+  if(f.size>MAX_FILE_BYTES){toast(`"${f.name}" is too large (max 1.5 MB).`,'err');return;}
+  const data=await readFileAsDataURL(f);
+  const kind=(f.type||'').startsWith('image/')?'image':'file';
+  G.pendingAttachments.push({id:gid(8),name:f.name,size:f.size,type:f.type,kind,data});
+}
+function readFileAsDataURL(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+    r.readAsDataURL(f);
+  });
+}
+function renderAttachmentBar(){
+  const t=document.getElementById('tbar');if(!t)return;
+  if(!G.pendingAttachments||!G.pendingAttachments.length){t.innerHTML='';t.classList.remove('attach-bar');return;}
+  t.classList.add('attach-bar');
+  t.innerHTML=G.pendingAttachments.map(a=>`<div class="att-chip">${esc(a.name||'file')}<span style="opacity:.7">${hsz(a.size||0)}</span><button onclick="removeAttachment('${a.id}')">✕</button></div>`).join('');
+}
+function removeAttachment(id){
+  G.pendingAttachments=G.pendingAttachments.filter(a=>a.id!==id);
+  renderAttachmentBar();
+}
+async function send(){
+  const inp=document.getElementById('minput');const content=inp.value.trim();
+  if(!G.curCh)return;
+  const atts=(G.pendingAttachments||[]);
+  if(!content&&!atts.length)return;
+  inp.value='';inp.style.height='auto';
+  const id=gid(12);
+  const msg={id,content,attachments:atts,authorPub:G.user.pub,authorName:G.user.displayName||G.user.alias,ts:Date.now()};
+  const stored={...msg,channelId:G.curCh};
+  G.seen.add(id); // mark own message so Gun echo doesn't re-render it
+  await DB.put('messages',stored);appendMsg(stored);_la=msg.authorPub;_lt=msg.ts;schedSave();
+  G.pendingAttachments=[];renderAttachmentBar();
+  if(G.curChT==='dm'){
+    const peer=G.curDmP;if(!peer||!peer.epub)return;
+    const secret=await SEA.secret(peer.epub,G.user.pair);
+    const enc=await SEA.encrypt(JSON.stringify(msg),secret);
+    // Gun relay — best-effort real-time delivery
+    G.gun.get('sable-dms').get(G.curCh).get(id).put(enc);
+    setTimeout(()=>G.gun.get('sable-dm-ping').get(G.curCh).put(Date.now()),300);
+    // Worker KV — guaranteed delivery (recipient polls every 8s)
+    if(_profileApi){
+      fetch(`${_profileApi}/api/dm-send`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cid:G.curCh,msgId:id,enc,ts:msg.ts,senderPub:G.user.pub})
+      }).catch(()=>{});
+    }
+  }else{
+    // Server messages: encrypted with server key
+    const srv=G.srvs[G.curSrv];const sKey=srv&&srv.serverKey;
+    let payload;
+    if(sKey){try{payload=await SEA.encrypt(JSON.stringify(msg),sKey);}catch(e){payload=JSON.stringify(msg);}}
+    else{payload=JSON.stringify(msg);}
+    G.gun.get('sable-msgs').get(G.curSrv).get(G.curCh).get(id).put(payload);
+  }
+}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+
+// ── MEMBERS ──────────────────────────────────────────────
+function loadMbrs(sid){
+  if(!G.srvs[sid])return;G.srvs[sid].members=G.srvs[sid].members||{};
+  G.gun.get('sable-srvs').get(sid).get('members').map().on((m,pub)=>{
+    if(!m||!pub)return;G.srvs[sid].members[pub]=m;if(G.curSrv===sid)renderMbrs(sid);
+  });
+}
+function renderMbrs(sid){
+  const members=Object.values((G.srvs[sid]&&G.srvs[sid].members)||{}).filter(Boolean);
+  document.getElementById('mbrs-list').innerHTML=members.map(m=>{
+    const _av=m.pub&&(G.user&&G.user.pub===m.pub?G.user.avatar:G.avatarCache[m.pub]);
+    const _avH=_av?`<img src="${_av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(m.displayName||m.alias||'?')}`;
+    return `<div class="mbritem"><div class="mbrav" style="background:${cf(m.pub||'')};color:#fff">${_avH}<div class="online-dot"></div></div><span class="mbrnm">${esc(m.displayName||m.alias||'?')}${m.pub===G.user.pub?' (you)':''}</span></div>`;
+  }).join('');
+}
+function toggleMbrs(){const s=document.getElementById('mbrs');s.style.display=s.style.display==='none'?'block':'none';}
+
+// ── VOICE — Cloudflare Calls SFU for server channels ────
+function _audioConstraints(){
+  return {echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+}
+async function joinVoice(sid,chId,chName){
+  if(G.voice)await leaveVoice();
+  // Unlock AudioContext during this user gesture
+  try{if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();}catch(e){}
+  // Microphone
+  try{G.lstream=await navigator.mediaDevices.getUserMedia({audio:_audioConstraints(),video:false});}
+  catch(e){return toast('Microphone access denied.','err');}
+  // Create CF Calls session
+  let sessionId;
+  try{
+    const sr=await fetch(`${_profileApi}/api/sfu/session`,{method:'POST',signal:AbortSignal.timeout(6000)});
+    if(!sr.ok)throw new Error('status '+sr.status);
+    ({sessionId}=await sr.json());
+  }catch(e){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;return toast('Could not connect to voice server — check your internet.','err');}
+  // RTCPeerConnection to CF SFU
+  const iceServers=await _getIceServers();
+  const pc=new RTCPeerConnection({iceServers,bundlePolicy:'max-bundle'});
+  G.sfuPC=pc;G.sfuSession=sessionId;G.sfuSubscribed=new Map();G.sfuTracksMap={};
+  G.lstream.getAudioTracks().forEach(t=>pc.addTrack(t,G.lstream));
+  // Publish local audio to SFU
+  const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+  let answerSdp;
+  try{
+    // Cloudflare Calls wants correct MID values; read them from transceivers after setLocalDescription().
+    let audioMid='0';
+    try{
+      const aTr=pc.getTransceivers().find(tr=>tr&&tr.sender&&tr.sender.track&&tr.sender.track.kind==='audio');
+      if(aTr&&aTr.mid!=null)audioMid=String(aTr.mid);
+    }catch(_){}
+    const pr=await fetch(`${_profileApi}/api/sfu/publish`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sessionId,sdp:offer.sdp,tracks:[{mid:audioMid,trackName:'audio_0'}]}),signal:AbortSignal.timeout(8000)});
+    if(!pr.ok)throw new Error('publish status '+pr.status+' '+(await pr.text()));
+    ({sdp:answerSdp}=await pr.json());
+  }catch(e){
+    try{pc.close();}catch(_){}G.sfuPC=null;G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;
+    return toast('Voice server rejected connection — try again.','err');
+  }
+  await pc.setRemoteDescription({type:'answer',sdp:answerSdp});
+  // Incoming tracks from SFU
+  pc.ontrack=e=>{
+    const mid=e.transceiver&&e.transceiver.mid;
+    const pub=mid!=null?G.sfuTracksMap[String(mid)]:null;
+    if(!pub){console.warn('[sable] SFU ontrack: unknown mid',mid,'map:',JSON.stringify(G.sfuTracksMap));return;}
+    const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
+    if(!G.vpeers[pub])G.vpeers[pub]={connState:'connected'};
+    if(e.track.kind==='video'){
+      // Video track from SFU peer — store stream for renderVUI to wire up
+      if(G.sfuParticipants[pub])G.sfuParticipants[pub].hasVideo=true;
+      G.vpeers[pub].stream=stream;G.vpeers[pub].hasVideo=true;
+    }else{
+      playAu(pub,stream);
+    }
+    renderVUI();
+  };
+  pc.onconnectionstatechange=()=>{
+    console.log('[sable] SFU PC state:',pc.connectionState);
+    if(pc.connectionState==='connected')toast('🎙️ Voice connected','ok',2000);
+    else if(pc.connectionState==='failed')toast('⚠️ Voice connection failed — try leaving and rejoining','err');
+  };
+  // Set voice state and show UI
+  const room=sid+'__'+chId;
+  G.sfuRoom=room;G.voice={sid,chId,chName,isSFU:true};G.curCh=chId;G.curChT='voice';
+  G.sfuParticipants={};
+  document.getElementById('chat').style.display='none';
+  document.getElementById('voice').style.display='flex';document.getElementById('voice').classList.add('on');
+  document.getElementById('vchname').textContent=chName;renderVUI();
+  // Announce presence in Gun (for voice channel active indicator)
+  G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,joined:Date.now(),active:true});
+  if(G.curSrv===sid)renderChList(sid);
+  // Join KV room for participant discovery
+  await fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({room,sessionId,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
+  // Poll room for peers every 3 s
+  G._sfuPollT=setInterval(sfuPollRoom,3000);sfuPollRoom();
+  // Heartbeat every 8 s to stay in room
+  G._sfuHeartbeatT=setInterval(async()=>{
+    if(!G.voice?.isSFU)return;
+    const hr=await fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.sfuVideo})}).catch(()=>null);
+    if(!hr||!hr.ok){
+      // Re-join if heartbeat missed (KV expiry race)
+      fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.sfuVideo})}).catch(()=>{});
+    }
+  },8000);
+  toast(`Joined ${chName}`,'ok');
+}
+
+function _sfuSubHas(sessionId, trackName){
+  try{ return !!(G.sfuSubscribed&&G.sfuSubscribed.get(sessionId)&&G.sfuSubscribed.get(sessionId).has(trackName)); }
+  catch(e){ return false; }
+}
+function _sfuSubMark(sessionId, trackName){
+  if(!G.sfuSubscribed||typeof G.sfuSubscribed.get!=='function')G.sfuSubscribed=new Map();
+  let set=G.sfuSubscribed.get(sessionId);
+  if(!set){ set=new Set(); G.sfuSubscribed.set(sessionId,set); }
+  set.add(trackName);
+}
+async function sfuPollRoom(){
+  if(!G.voice?.isSFU||!G.sfuRoom)return;
+  try{
+    const r=await fetch(`${_profileApi}/api/sfu/room/${encodeURIComponent(G.sfuRoom)}`);
+    if(!r.ok)return;
+    const{participants}=await r.json();
+    // Update participant map
+    const seen=new Set();
+    for(const p of participants){
+      if(p.pub===G.user.pub)continue;
+      seen.add(p.pub);
+      G.sfuParticipants[p.pub]=p;
+      if(!G.vpeers[p.pub])G.vpeers[p.pub]={connState:'connected'};
+    }
+    // Remove departed peers
+    for(const pub of Object.keys(G.sfuParticipants)){
+      if(!seen.has(pub)){
+        delete G.sfuParticipants[pub];
+        delete G.vpeers[pub];
+        const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');
+        document.getElementById(id)?.remove();
+      }
+    }
+    // Subscribe per-track: audio always; video only when advertised.
+    const need=[];
+    for(const p of participants){
+      if(!p||p.pub===G.user.pub)continue;
+      const missing=[];
+      if(!_sfuSubHas(p.sessionId,'audio_0'))missing.push('audio_0');
+      if(p.hasVideo&&!_sfuSubHas(p.sessionId,'video_0'))missing.push('video_0');
+      if(missing.length)need.push({sessionId:p.sessionId,pub:p.pub,missing});
+    }
+    if(need.length)await sfuSubscribePeers(need);
+    renderVUI();
+  }catch(e){console.error('[sable] SFU room poll error:',e);}
+}
+async function sfuSubscribePeers(peers){
+  if(!G.sfuPC||!G.sfuSession||!peers.length)return;
+  try{
+    // peers: [{sessionId,pub,missing:[trackName]}]
+    const sessionToPub={};
+    const tracks=[];
+    for(const p of peers){
+      sessionToPub[p.sessionId]=p.pub;
+      for(const tn of (p.missing||[])){
+        tracks.push({sessionId:p.sessionId,trackName:tn});
+      }
+    }
+    if(!tracks.length)return;
+    const r=await fetch(`${_profileApi}/api/sfu/subscribe`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sessionId:G.sfuSession,tracks})});
+    if(!r.ok){console.error('[sable] SFU subscribe failed:',r.status,await r.text());return;}
+    const d=await r.json();
+    // Map MID → pub; track audio vs video
+    if(d.tracks){
+      for(const t of d.tracks){
+        if(t.mid==null)continue;
+        const pub=sessionToPub[t.sessionId]||null;
+        if(!pub)continue;
+        G.sfuTracksMap[String(t.mid)]=pub;
+        if(t.trackName==='video_0')G.sfuTracksMap[String(t.mid)+'_video']=pub+'_video';
+        if(t.trackName)_sfuSubMark(t.sessionId,t.trackName);
+      }
+    }
+    // Mark requested tracks as subscribed (in case CF omits them from the response)
+    peers.forEach(p=>(p.missing||[]).forEach(tn=>_sfuSubMark(p.sessionId,tn)));
+    // Handle CF renegotiation offer (always required for subscribe)
+    if(d.sessionDescription){
+      await G.sfuPC.setRemoteDescription({type:d.sessionDescription.type,sdp:d.sessionDescription.sdp});
+      const ans=await G.sfuPC.createAnswer();
+      await G.sfuPC.setLocalDescription(ans);
+      await fetch(`${_profileApi}/api/sfu/renegotiate`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({sessionId:G.sfuSession,sdp:ans.sdp})});
+    }
+  }catch(e){console.error('[sable] SFU subscribe error:',e);}
+}
+async function leaveSFU(){
+  if(G._sfuPollT){clearInterval(G._sfuPollT);G._sfuPollT=null;}
+  if(G._sfuHeartbeatT){clearInterval(G._sfuHeartbeatT);G._sfuHeartbeatT=null;}
+  const room=G.sfuRoom,sessionId=G.sfuSession,sid=G.voice?.sid,chId=G.voice?.chId;
+  // Announce departure in Gun
+  if(sid&&chId)G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({active:false,pub:G.user.pub});
+  // KV leave
+  fetch(`${_profileApi}/api/sfu/room/leave`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({room,pub:G.user.pub})}).catch(()=>{});
+  // Close CF session
+  fetch(`${_profileApi}/api/sfu/close`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({sessionId})}).catch(()=>{});
+  if(G.sfuPC){try{G.sfuPC.close();}catch(_){}G.sfuPC=null;}
+  if(G.lstream){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;}
+  if(G.sfuVideoStream){G.sfuVideoStream.getTracks().forEach(t=>t.stop());G.sfuVideoStream=null;}
+  G.sfuVideo=false;G.sfuVideoSender=null;G.sfuVideoMid=null;
+  if(G._voiceCtx){try{G._voiceCtx.close();}catch(_){}G._voiceCtx=null;}
+  // Clean up audio elements and vpeers entries for SFU participants
+  Object.keys(G.sfuParticipants).forEach(pub=>{
+    delete G.vpeers[pub];
+    const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');document.getElementById(id)?.remove();
+  });
+  G.voice=null;G.sfuSession=null;G.sfuRoom=null;G.sfuParticipants={};G.sfuSubscribed=new Map();G.sfuTracksMap={};
+  G.muted=false;G.deafened=false;
+  // Reset camera button
+  const camBtn=document.getElementById('vcam-btn');
+  if(camBtn){camBtn.textContent='📷';camBtn.style.background='var(--bg3)';camBtn.style.color='var(--t1)';}
+  document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
+  document.getElementById('chat').style.display='flex';
+  if(sid&&sid!=='dm'){const tChs=Object.values(G.srvs[sid]&&G.srvs[sid].channels||{}).filter(c=>c&&c.type==='text');if(tChs.length)selCh(sid,tChs[0].id,'text');}
+  if(G.curSrv===sid)renderChList(sid);
+  toast('Left voice channel.');
+}
+// Cache ICE servers for up to 4 minutes (Metered credentials last 5 min)
+let _iceCache={servers:null,exp:0};
+async function _getIceServers(){
+  if(_iceCache.servers&&Date.now()<_iceCache.exp)return _iceCache.servers;
+  if(_profileApi){
+    try{
+      const r=await fetch(`${_profileApi}/api/ice-servers`,{signal:AbortSignal.timeout(3000)});
+      if(r.ok){
+        const d=await r.json();
+        if(d.iceServers&&d.iceServers.length){
+          _iceCache={servers:d.iceServers,exp:Date.now()+4*60*1000};
+          console.log('[sable] ICE servers loaded from Worker:',d.iceServers.map(s=>s.urls).flat().join(', '));
+          return d.iceServers;
+        }
+      }
+    }catch(e){console.warn('[sable] Could not fetch ICE servers from Worker, using fallback:',e.message);}
+  }
+  console.log('[sable] Using fallback ICE servers (TURN may not work)');
+  return STUN;
+}
+async function mkConn(pPub,sid,chId,init){
+  if(G.vpeers[pPub])return;
+  const iceServers=await _getIceServers();
+  const pc=new RTCPeerConnection({iceServers});G.vpeers[pPub]={pc,pendingIce:[]};
+  if(G.lstream)G.lstream.getTracks().forEach(t=>pc.addTrack(t,G.lstream));
+  pc.ontrack=e=>{
+    const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
+    if(G.vpeers[pPub])G.vpeers[pPub].stream=stream;
+    if(e.track.kind==='video'){
+      // Remote video track — wire to video call overlay
+      if(G.vpeers[pPub])G.vpeers[pPub].hasVideo=true;
+      const rv=document.getElementById('vcall-remote-vid');
+      if(rv){rv.srcObject=stream;rv.style.display='block';document.getElementById('vcall-no-vid').style.display='none';}
+      const sl=document.getElementById('vcall-state');if(sl)sl.textContent='● Connected';
+    }else{
+      playAu(pPub,stream);
+    }
+    renderVUI();
+  };
+  pc.onicecandidate=e=>{
+    if(e.candidate){
+      const c=e.candidate;
+      console.log(`[sable] ICE candidate (${init?'initiator':'answerer'}): type=${c.type} proto=${c.protocol} addr=${c.address||c.ip||'?'}`);
+      const iceStr=JSON.stringify(c);
+      G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('ice').set(iceStr);
+      sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'ice',data:iceStr});
+    }else{
+      console.log('[sable] ICE gathering complete');
+    }
+  };
+  pc.onicegatheringstatechange=()=>console.log('[sable] ICE gathering state:',pc.iceGatheringState);
+  pc.oniceconnectionstatechange=()=>console.log('[sable] ICE connection state:',pc.iceConnectionState);
+  pc.onconnectionstatechange=()=>{
+    if(G.vpeers[pPub])G.vpeers[pPub].connState=pc.connectionState;
+    renderVUI();
+    const pName=(G.dms[pPub]&&(G.dms[pPub].displayName||G.dms[pPub].alias))||pPub.slice(0,8);
+    if(pc.connectionState==='connecting'){
+      // Safety net: if still connecting after 15 s, force an ICE restart.
+      // Same-machine Chrome↔Edge often gets stuck here due to mDNS candidate
+      // resolution failing — the state never transitions to 'failed' on its own.
+      if(init){
+        clearTimeout(G.vpeers[pPub]&&G.vpeers[pPub]._connectT);
+        if(G.vpeers[pPub])G.vpeers[pPub]._connectT=setTimeout(async()=>{
+          if(!G.vpeers[pPub]||pc.connectionState!=='connecting')return;
+          console.warn('[sable] Still connecting after 15 s — forcing ICE restart');
+          toast(`📶 Call taking too long — retrying connection…`,'warn',5000);
+          try{
+            const o=await pc.createOffer({iceRestart:true});
+            await pc.setLocalDescription(o);
+            const offerStr=JSON.stringify(o);
+            G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('offer').put(offerStr);
+            sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'offer',data:offerStr});
+          }catch(e){
+            console.error('[sable] Connecting-timeout ICE restart failed:',e);
+            toast(`❌ Call with ${(G.dms[pPub]&&(G.dms[pPub].displayName||G.dms[pPub].alias))||pPub.slice(0,8)} failed`,'err');
+            rmPeer(pPub);
+          }
+        },15000);
+      }
+    }else if(pc.connectionState==='connected'){
+      if(G.vpeers[pPub])clearTimeout(G.vpeers[pPub]._connectT);
+      toast(`🔊 Connected to ${pName}`,'ok',3000);
+    }else if(pc.connectionState==='failed'){
+      if(G.vpeers[pPub])clearTimeout(G.vpeers[pPub]._connectT);
+      if(init){
+        // Initiator restarts ICE rather than dropping immediately
+        toast(`📶 Call with ${pName} dropped — reconnecting…`,'warn',5000);
+        (async()=>{try{
+          const o=await pc.createOffer({iceRestart:true});
+          await pc.setLocalDescription(o);
+          const offerStr=JSON.stringify(o);
+          G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('offer').put(offerStr);
+          await sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'offer',data:offerStr});
+        }catch(e){
+          console.error('[sable] ICE restart failed:',e);
+          toast(`❌ Call with ${pName} failed — could not reconnect`,'err');
+          rmPeer(pPub);
+        }})();
+      }else{
+        // Non-initiator: wait up to 10 s for initiator to restart, then give up
+        toast(`📶 Call with ${pName} dropped — waiting for reconnect…`,'warn',5000);
+        setTimeout(()=>{
+          if(G.vpeers[pPub]&&['failed','closed'].includes(G.vpeers[pPub].pc.connectionState)){
+            toast(`❌ Call with ${pName} failed — could not reconnect`,'err');
+            rmPeer(pPub);
+          }
+        },10000);
+      }
+    }else if(pc.connectionState==='disconnected'){
+      if(G.vpeers[pPub])clearTimeout(G.vpeers[pPub]._connectT);
+      // Give 5 s for a transient disconnect to self-heal before removing
+      setTimeout(()=>{
+        if(G.vpeers[pPub]&&G.vpeers[pPub].pc.connectionState==='disconnected'){
+          toast(`❌ Call with ${pName} disconnected`,'err');
+          rmPeer(pPub);
+        }
+      },5000);
+    }
+  };
+  if(init){
+    try{
+      const o=await pc.createOffer();await pc.setLocalDescription(o);
+      const offerStr=JSON.stringify(o);
+      G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('offer').put(offerStr);
+      sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'offer',data:offerStr});
+    }catch(e){
+      console.error('[sable] createOffer failed:',e);
+      toast('⚠️ Call setup failed (could not create offer) — check console','err');
+      rmPeer(pPub);
+    }
+  }
+}
+function lsnSigs(sid,chId){
+  // Gun relay signaling (best-effort)
+  G.gun.get('sable-sigs').get(sid).get(chId).get(G.user.pub).map().on(async(_,sp)=>{
+    if(sp===G.user.pub)return;
+    const sig=G.gun.get('sable-sigs').get(sid).get(chId).get(G.user.pub).get(sp);
+    sig.get('offer').once(async os=>{
+      if(!os)return;let pc=G.vpeers[sp]&&G.vpeers[sp].pc;
+      if(!pc){await mkConn(sp,sid,chId,false);pc=G.vpeers[sp].pc;}
+      if(pc.signalingState!=='stable')return;
+      try{
+        await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(os)));
+        const vp=G.vpeers[sp];
+        if(vp&&vp.pendingIce){
+          for(const d of vp.pendingIce){
+            try{
+              const cand=(typeof d==='string')?JSON.parse(d):d;
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            }catch(ie){console.warn('[sable] buffered ICE error (Gun):',ie);}
+          }
+          vp.pendingIce=[];
+        }
+        const a=await pc.createAnswer();await pc.setLocalDescription(a);
+        const ansStr=JSON.stringify(a);
+        G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(ansStr);
+        sigSend({room:sid+'__'+chId,to:sp,from:G.user.pub,type:'answer',data:ansStr});
+      }catch(e){console.error('[sable] Gun offer handling failed:',e);toast('⚠️ Call setup error (offer) — check console','err');}
+    });
+    sig.get('answer').once(async as=>{
+      if(!as)return;const vp=G.vpeers[sp];const pc=vp&&vp.pc;
+      if(!pc||pc.signalingState!=='have-local-offer')return;
+      try{
+        await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(as)));
+        if(vp&&vp.pendingIce){
+          for(const d of vp.pendingIce){
+            try{
+              const cand=(typeof d==='string')?JSON.parse(d):d;
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            }catch(ie){console.warn('[sable] buffered ICE error (Gun answer):',ie);}
+          }
+          vp.pendingIce=[];
+        }
+      }catch(e){console.error('[sable] Gun answer handling failed:',e);toast('⚠️ Call setup error (answer) — check console','err');}
+    });
+    sig.get('ice').map().on(async is=>{
+      if(!is)return;const vp=G.vpeers[sp];const pc=vp&&vp.pc;if(!pc)return;
+      const pushPending=(val)=>{if(vp.pendingIce)vp.pendingIce.push(val);};
+      const applyIce=async(val)=>{
+        try{
+          const cand=(typeof val==='string')?JSON.parse(val):val;
+          await pc.addIceCandidate(new RTCIceCandidate(cand));
+        }catch(e){console.warn('[sable] ICE candidate error (Gun):',e);}
+      };
+      if(!pc.remoteDescription){pushPending(is);return;}
+      await applyIce(is);
+    });
+  });
+  // Worker KV signaling poll (reliable cross-browser fallback, 2s interval)
+  if(_profileApi&&!G._sigPollT){
+    const room=sid+'__'+chId;
+    let sigSince=0;
+    const _sigSeen=new Set();
+    G._sigPollT=setInterval(async()=>{
+      if(!G.voice||!G.user){clearInterval(G._sigPollT);G._sigPollT=null;return;}
+      try{
+        const r=await fetch(`${_profileApi}/api/sig-poll/${encodeURIComponent(room)}/${encodeURIComponent(G.user.pub)}?since=${sigSince}`);
+        if(!r.ok)return;
+        const d=await r.json();
+        if(!d.signals||!d.signals.length)return;
+        for(const sig of d.signals){
+          if(sig.ts>sigSince)sigSince=sig.ts;
+          const sigKey=sig.from+':'+sig.type+':'+sig.ts;
+          if(_sigSeen.has(sigKey))continue;
+          _sigSeen.add(sigKey);
+          const sp=sig.from;if(!sp||sp===G.user.pub)continue;
+          // 'ready' — other side has joined the call; create PC with deterministic initiator
+          if(sig.type==='ready'){
+            if(!G.vpeers[sp]&&G.voice){
+              const amInit=G.user.pub<sp;
+              await mkConn(sp,sid,chId,amInit);
+              renderVUI();
+            }
+            continue;
+          }
+          if(sig.type==='offer'){
+            let pc=G.vpeers[sp]&&G.vpeers[sp].pc;
+            if(!pc){await mkConn(sp,sid,chId,false);pc=G.vpeers[sp]&&G.vpeers[sp].pc;renderVUI();}
+            if(!pc||pc.signalingState!=='stable')continue;
+            try{
+              await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(sig.data)));
+              const vp=G.vpeers[sp];
+              if(vp&&vp.pendingIce){
+                for(const d of vp.pendingIce){
+                  try{
+                    const cand=(typeof d==='string')?JSON.parse(d):d;
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                  }catch(ie){console.warn('[sable] buffered ICE error (KV offer):',ie);}
+                }
+                vp.pendingIce=[];
+              }
+              const a=await pc.createAnswer();await pc.setLocalDescription(a);
+              const ansStr=JSON.stringify(a);
+              G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(ansStr);
+              sigSend({room,to:sp,from:G.user.pub,type:'answer',data:ansStr});
+            }catch(e){console.error('[sable] KV offer handling failed:',e);toast('⚠️ Call setup error (offer) — check console','err');}
+          } else if(sig.type==='answer'){
+            const vp=G.vpeers[sp];const pc=vp&&vp.pc;
+            if(!pc||pc.signalingState!=='have-local-offer')continue;
+            try{
+              await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(sig.data)));
+              if(vp&&vp.pendingIce){
+                for(const d of vp.pendingIce){
+                  try{
+                    const cand=(typeof d==='string')?JSON.parse(d):d;
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                  }catch(ie){console.warn('[sable] buffered ICE error (KV answer):',ie);}
+                }
+                vp.pendingIce=[];
+              }
+            }catch(e){console.error('[sable] KV answer handling failed:',e);toast('⚠️ Call setup error (answer) — check console','err');}
+          } else if(sig.type==='ice'){
+            const vp=G.vpeers[sp];const pc=vp&&vp.pc;if(!pc)continue;
+            let items=[];
+            try{
+              const parsed=JSON.parse(sig.data);
+              items=Array.isArray(parsed)?parsed:[parsed];
+            }catch(e){
+              items=[sig.data];
+            }
+            const pushPending=(val)=>{if(vp.pendingIce)vp.pendingIce.push(val);};
+            const applyIce=async(val)=>{
+              try{
+                const cand=(typeof val==='string')?JSON.parse(val):val;
+                await pc.addIceCandidate(new RTCIceCandidate(cand));
+              }catch(e){console.warn('[sable] ICE candidate error (KV):',e);}
+            };
+            if(!pc.remoteDescription){items.forEach(pushPending);continue;}
+            for(const it of items){await applyIce(it);}
+          }
+        }
+      }catch(e){console.error('[sable] signal poll error:',e);}
+    },1500); // sig poll every 1.5s during call — fast enough for ICE, saves 3x KV reads vs 500ms
+  }
+}
+function playAu(pub,stream){
+  // Primary path: route through unlocked AudioContext (bypasses autoplay policy)
+  if(G._voiceCtx){
+    try{
+      if(G._voiceCtx.state==='suspended')G._voiceCtx.resume();
+      // Disconnect any previous source for this pub
+      if(G.vpeers[pub]&&G.vpeers[pub]._audioSrc){
+        try{G.vpeers[pub]._audioSrc.disconnect();}catch(e){}
+      }
+      const src=G._voiceCtx.createMediaStreamSource(stream);
+      const analyser=G._voiceCtx.createAnalyser();analyser.fftSize=256;
+      src.connect(analyser);analyser.connect(G._voiceCtx.destination);
+      if(G.vpeers[pub]){G.vpeers[pub]._audioSrc=src;G.vpeers[pub]._analyser=analyser;}
+    }catch(e){console.warn('AudioContext playback error:',e);}
+  }
+  // Fallback: HTML audio element (may be blocked by autoplay policy)
+  const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');
+  let a=document.getElementById(id);
+  if(!a){a=document.createElement('audio');a.id=id;a.autoplay=true;document.getElementById('audios').appendChild(a);}
+  a.srcObject=stream;
+  a.muted=!!G.deafened;
+  a.play().catch(e=>{
+    console.warn('[sable] Audio autoplay blocked:',e);
+    toast('🔇 Audio blocked by browser — click anywhere on the page to enable sound','warn',8000);
+  });
+}
+
+async function sigSend(payload){
+  if(!_profileApi)return;
+  // Batch ICE candidates to avoid KV rate limits (429 Too Many Requests).
+  if(payload&&payload.type==='ice'){
+    if(!G._iceQueue)G._iceQueue=new Map();
+    const key=payload.room+'|'+payload.to;
+    let q=G._iceQueue.get(key);
+    if(!q){q=[];G._iceQueue.set(key,q);}
+    q.push(payload.data);
+    if(!G._iceFlushT){
+      G._iceFlushT=setTimeout(async()=>{
+        const entries=[...G._iceQueue.entries()];
+        G._iceQueue.clear();G._iceFlushT=null;
+        for(const [k,list] of entries){
+          const parts=k.split('|');const room=parts[0];const to=parts[1];
+          const batched={room,to,from:G.user.pub,type:'ice',data:JSON.stringify(list)};
+          try{
+            const r=await fetch(`${_profileApi}/api/sig-send`,{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify(batched)
+            });
+            if(!r.ok){
+              let txt='';try{txt=await r.text();}catch(_){}
+              console.warn('[sable] sig-send HTTP error:',r.status,txt);
+            }
+          }catch(e){
+            console.warn('[sable] sig-send network error:',e);
+          }
+        }
+      },150);
+    }
+    return;
+  }
+  try{
+    const r=await fetch(`${_profileApi}/api/sig-send`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok){
+      let txt='';
+      try{txt=await r.text();}catch(_){}
+      console.warn('[sable] sig-send HTTP error:',r.status,txt);
+    }
+  }catch(e){
+    console.warn('[sable] sig-send network error:',e);
+  }
+}
+function rmPeer(pub){
+  if(G.vpeers[pub]){
+    clearTimeout(G.vpeers[pub]._connectT);
+    try{G.vpeers[pub].pc.close();}catch(e){}
+    if(G.vpeers[pub]._audioSrc){try{G.vpeers[pub]._audioSrc.disconnect();}catch(e){}}
+    delete G.vpeers[pub];
+  }
+  const a=document.getElementById('au-'+pub.replace(/[^a-zA-Z0-9]/g,'_'));
+  if(a)a.remove();
+  renderVUI();
+}
+async function leaveVoice(){
+  if(!G.voice)return;
+  if(G.voice.isSFU)return leaveSFU();
+  const{sid,chId}=G.voice;
+  G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({active:false,pub:G.user.pub});
+  Object.keys(G.vpeers).forEach(rmPeer);
+  if(G.lstream){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;}
+  if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;}
+  if(G._voiceCtx){try{G._voiceCtx.close();}catch(e){}G._voiceCtx=null;}
+  G.voice=null;G.muted=false;G.deafened=false;G.callType='audio';
+  // Hide both voice channel UI and video call overlay
+  document.getElementById('vcall-overlay').classList.remove('on');
+  const rv=document.getElementById('vcall-remote-vid');if(rv){rv.srcObject=null;rv.style.display='none';}
+  const lv=document.getElementById('vcall-local-vid');if(lv){lv.srcObject=null;lv.style.display='none';}
+  document.getElementById('vcall-no-vid').style.display='flex';
+  document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
+  document.getElementById('chat').style.display='flex';
+  if(G.curSrv&&G.curSrv!=='dm'){const tChs=Object.values(G.srvs[G.curSrv]&&G.srvs[G.curSrv].channels||{}).filter(c=>c&&c.type==='text');if(tChs.length)selCh(G.curSrv,tChs[0].id,'text');}
+  toast('Call ended.');
+}
+function toggleMute(){G.muted=!G.muted;if(G.lstream)G.lstream.getAudioTracks().forEach(t=>t.enabled=!G.muted);const b=document.getElementById('vmute');b.textContent=G.muted?'🔇':'🎤';b.classList.toggle('on',G.muted);}
+function toggleDeaf(){
+  G.deafened=!G.deafened;
+  // Mute/unmute HTML audio element fallbacks
+  document.querySelectorAll('#audios audio').forEach(a=>a.muted=G.deafened);
+  // Mute/unmute AudioContext path by disconnecting/reconnecting analysers from destination
+  if(G._voiceCtx){
+    for(const vp of Object.values(G.vpeers)){
+      if(!vp._analyser)continue;
+      try{
+        if(G.deafened)vp._analyser.disconnect(G._voiceCtx.destination);
+        else vp._analyser.connect(G._voiceCtx.destination);
+      }catch(e){}
+    }
+  }
+  const b=document.getElementById('vdeaf');b.textContent=G.deafened?'🔈':'🔊';b.classList.toggle('on',G.deafened);
+}
+
+// ── VIDEO CALL OVERLAY HELPERS ───────────────────────────
+function _showVcallOverlay(peer, isCalling){
+  document.getElementById('chat').style.display='none';
+  document.getElementById('vcall-overlay').classList.add('on');
+  const pname=peer.displayName||peer.alias||'Unknown';
+  document.getElementById('vcall-who').textContent=pname;
+  document.getElementById('vcall-state').textContent=isCalling?'Calling…':'Connecting…';
+  document.getElementById('vcall-peer-name').textContent=pname;
+  const av=document.getElementById('vcall-peer-av');
+  av.style.background=cf(peer.pub);
+  const cached=G.avatarCache&&G.avatarCache[peer.pub];
+  if(cached){av.innerHTML=`<img src="${cached}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;}
+  else{av.textContent=ini(pname);}
+  // Show local video preview
+  const lv=document.getElementById('vcall-local-vid');
+  if(G.lstream&&G.lstream.getVideoTracks().length){lv.srcObject=G.lstream;lv.style.display='block';}
+  else{lv.style.display='none';}
+  // Show mute state
+  document.getElementById('vcbtn-mute').classList.toggle('on',!!G.muted);
+}
+function toggleVcallMute(){
+  G.muted=!G.muted;
+  if(G.lstream)G.lstream.getAudioTracks().forEach(t=>t.enabled=!G.muted);
+  const b=document.getElementById('vcbtn-mute');
+  b.textContent=G.muted?'🔇':'🎤';b.classList.toggle('on',G.muted);
+}
+function toggleVcallCam(){
+  if(!G.lstream)return;
+  const vt=G.lstream.getVideoTracks();
+  if(!vt.length)return;
+  const nowOn=!vt[0].enabled;
+  vt.forEach(t=>t.enabled=nowOn);
+  const b=document.getElementById('vcbtn-cam');
+  b.textContent=nowOn?'📷':'🚫';b.classList.toggle('on',!nowOn);
+  const lv=document.getElementById('vcall-local-vid');
+  if(lv)lv.style.display=nowOn?'block':'none';
+}
+
+// ── SFU CAMERA TOGGLE ────────────────────────────────────
+async function toggleSfuCamera(){
+  if(!G.voice?.isSFU||!G.sfuPC||!G.sfuSession)return;
+  if(!G.sfuVideo){
+    // Turn camera on
+    let vs;
+    try{vs=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}});}
+    catch(e){return toast('Camera access denied — check browser permissions.','err');}
+    const vt=vs.getVideoTracks()[0];
+    if(!vt){vs.getTracks().forEach(t=>t.stop());return toast('No camera found.','err');}
+    G.sfuVideoStream=vs;
+    try{
+      // If we've published a video track before, swap tracks without renegotiation.
+      if(G.sfuVideoSender&&G.sfuVideoMid){
+        try{await G.sfuVideoSender.replaceTrack(vt);}catch(_){G.sfuVideoSender.replaceTrack&&G.sfuVideoSender.replaceTrack(vt);}
+      }else{
+        const sender=G.sfuPC.addTrack(vt,vs);
+        const offer=await G.sfuPC.createOffer();
+        await G.sfuPC.setLocalDescription(offer);
+        let videoMid='1';
+        try{
+          const vTr=G.sfuPC.getTransceivers().find(tr=>tr&&tr.sender&&tr.sender.track===vt);
+          if(vTr&&vTr.mid!=null)videoMid=String(vTr.mid);
+        }catch(_){}
+        const r=await fetch(`${_profileApi}/api/sfu/publish`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({sessionId:G.sfuSession,sdp:offer.sdp,tracks:[{mid:videoMid,trackName:'video_0'}]})});
+        if(!r.ok)throw new Error('publish video HTTP '+r.status);
+        const{sdp}=await r.json();
+        await G.sfuPC.setRemoteDescription({type:'answer',sdp});
+        G.sfuVideoSender=sender;
+        G.sfuVideoMid=videoMid;
+      }
+      G.sfuVideo=true;
+      // Update room roster quickly so peers can subscribe to video_0.
+      fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:true})}).catch(()=>{});
+      const btn=document.getElementById('vcam-btn');
+      btn.textContent='📹';btn.style.background='var(--accent)';btn.style.color='#fff';
+      toast('📹 Camera on','ok',2000);
+      // Show self-view in voice grid
+      renderVUI();
+    }catch(e){
+      vs.getTracks().forEach(t=>t.stop());G.sfuVideoStream=null;
+      console.error('[sable] SFU camera publish failed:',e);
+      toast('Could not enable camera — try again.','err');
+    }
+  }else{
+    // Turn camera off
+    if(G.sfuVideoStream){G.sfuVideoStream.getTracks().forEach(t=>t.stop());G.sfuVideoStream=null;}
+    G.sfuVideo=false;
+    try{ if(G.sfuVideoSender&&G.sfuVideoSender.replaceTrack) await G.sfuVideoSender.replaceTrack(null); }catch(_){}
+    fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
+    const btn=document.getElementById('vcam-btn');
+    btn.textContent='📷';btn.style.background='var(--bg3)';btn.style.color='var(--t1)';
+    toast('Camera off','ok',2000);
+    renderVUI();
+  }
+}
+function renderVUI(){
+  const c=document.getElementById('vgrid');
+  // Self card — show local video preview when camera is on (SFU mode)
+  let selfVidHtml='';
+  if(G.voice&&G.voice.isSFU&&G.sfuVideo&&G.sfuVideoStream){
+    selfVidHtml='<video class="vcard-self-vid" id="sfu-self-vid" autoplay muted playsinline></video>';
+  }
+  const selfCard=`<div class="vcard${G.muted?' speak':''}${G.sfuVideo?' has-video':''}" id="vc-self">
+    ${selfVidHtml}
+    <div class="vavc" style="background:${cf(G.user.pub)};color:#fff">${ini(G.user.displayName||G.user.alias)}</div>
+    <div class="vn">${esc(G.user.displayName||G.user.alias)}<br><small style="color:var(--t3)">(you${G.muted?' · muted':''}${G.sfuVideo?' · 📹':''})</small></div>
+  </div>`;
+  function peerCard(pub,displayName,alias,stateLabel,stateColor,hasVideo,videoEl){
+    const safeId=pub.replace(/[^a-zA-Z0-9]/g,'_');
+    const vidHtml=hasVideo&&videoEl?`<video class="vtile" id="vtile-${safeId}" autoplay playsinline></video>`:'';
+    return`<div class="vcard${hasVideo?' has-video':''}" id="vc-${safeId}">
+      ${vidHtml}
+      <div class="vavc" style="background:${cf(pub)};color:#fff">${ini(displayName||alias||'?')}</div>
+      <div class="vn">${esc(displayName||alias||'User')}<br>
+        <small style="color:${stateColor}">${stateLabel}${hasVideo?' · 📹':''}</small>
+      </div>
+      <div id="vlevel-${safeId}" style="width:60px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px"><div style="height:100%;background:var(--green);width:0%;transition:width .1s" id="vlevelbar-${safeId}"></div></div>
+    </div>`;
+  }
+  if(G.voice&&G.voice.isSFU){
+    // SFU mode: participants from G.sfuParticipants
+    c.innerHTML=selfCard+Object.entries(G.sfuParticipants).map(([pub,p])=>{
+      const hasVid=!!(p.hasVideo&&G.sfuTracksMap&&Object.values(G.sfuTracksMap).includes(pub+'_video'));
+      return peerCard(pub,p.displayName,p.alias,'● connected','var(--green)',hasVid,true);
+    }).join('');
+    // Bind self local video
+    if(G.sfuVideo&&G.sfuVideoStream){
+      const sv=document.getElementById('sfu-self-vid');
+      if(sv&&!sv.srcObject)sv.srcObject=G.sfuVideoStream;
+    }
+    // Bind peer video tiles
+    for(const[pub,p] of Object.entries(G.sfuParticipants)){
+      const safeId=pub.replace(/[^a-zA-Z0-9]/g,'_');
+      const vtile=document.getElementById('vtile-'+safeId);
+      if(vtile&&G.vpeers[pub]?.stream&&!vtile.srcObject)vtile.srcObject=G.vpeers[pub].stream;
+    }
+  }else{
+    // P2P mode: participants from G.vpeers
+    const stateColor={new:'var(--t3)',connecting:'var(--yellow)',connected:'var(--green)',disconnected:'var(--red)',failed:'var(--red)',closed:'var(--t3)'};
+    c.innerHTML=selfCard+Object.entries(G.vpeers).map(([pub,vp])=>{
+      const p=G.dms[pub]||G.sfuParticipants[pub]||{pub,alias:pub.slice(0,8)};
+      const st=vp.connState||'connecting';
+      const hasAudio=!!vp._audioSrc;
+      return peerCard(pub,p.displayName,p.alias,st+(hasAudio?' · 🔊':''),stateColor[st]||'var(--t3)',false,false);
+    }).join('');
+  }
+  _animateVLevels();
+}
+let _vlevelRaf=0;
+function _animateVLevels(){
+  cancelAnimationFrame(_vlevelRaf);
+  if(!G.voice||!Object.keys(G.vpeers).length)return;
+  const buf=new Uint8Array(128);
+  for(const[pub,vp] of Object.entries(G.vpeers)){
+    if(!vp._analyser)continue;
+    const barId='vlevelbar-'+pub.replace(/[^a-zA-Z0-9]/g,'_');
+    vp._analyser.getByteFrequencyData(buf);
+    const avg=buf.slice(0,32).reduce((s,v)=>s+v,0)/32;
+    const pct=Math.min(100,avg*1.2);
+    const bar=document.getElementById(barId);
+    if(bar)bar.style.width=pct+'%';
+  }
+  _vlevelRaf=requestAnimationFrame(_animateVLevels);
+}
+function exitVoice(){if(!G.voice)return;document.getElementById('voice').style.display='none';document.getElementById('chat').style.display='flex';const tChs=Object.values(G.srvs[G.voice.sid]&&G.srvs[G.voice.sid].channels||{}).filter(c=>c&&c.type==='text');if(tChs.length)selCh(G.voice.sid,tChs[0].id,'text');}
+// ── INCOMING CALL UI ─────────────────────────────────────
+let _ringCtx=null,_ringNodes=[],_incomingCallData=null;
+function startRing(){
+  try{
+    _ringCtx=new(window.AudioContext||window.webkitAudioContext)();
+    // Two-tone repeating ringtone
+    let t=_ringCtx.currentTime;
+    const freqs=[440,480];const dur=0.4,gap=0.2,repeat=20;
+    for(let i=0;i<repeat;i++){
+      for(let fi=0;fi<freqs.length;fi++){
+        const osc=_ringCtx.createOscillator();const gain=_ringCtx.createGain();
+        osc.type='sine';osc.frequency.value=freqs[fi];
+        gain.gain.setValueAtTime(0,t+fi*dur);
+        gain.gain.linearRampToValueAtTime(0.18,t+fi*dur+0.01);
+        gain.gain.linearRampToValueAtTime(0.18,t+fi*dur+dur-0.01);
+        gain.gain.linearRampToValueAtTime(0,t+fi*dur+dur);
+        osc.connect(gain);gain.connect(_ringCtx.destination);
+        osc.start(t+fi*dur);osc.stop(t+fi*dur+dur);
+        _ringNodes.push(osc);
+      }
+      t+=freqs.length*dur+gap;
+    }
+  }catch(e){console.warn('Ring audio error',e);}
+}
+function stopRing(){
+  if(_ringCtx){try{_ringCtx.close();}catch(e){}; _ringCtx=null;}
+  _ringNodes=[];
+}
+function showIncomingCall(callerPub,callerAlias,callerName,callerEpub,cid,callId,callType){
+  if(G.voice)return; // already in a call
+  callType=callType||'audio';
+  _incomingCallData={callerPub,callerAlias,callerName,callerEpub,cid,callId,callType};
+  // Avatar
+  const av=document.getElementById('incall-avatar');
+  const color=cf(callerPub);av.style.background=color;
+  const cached=G.avatarCache&&G.avatarCache[callerPub];
+  if(cached){av.innerHTML=`<img src="${cached}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;}
+  else{av.textContent=ini(callerName);}
+  document.getElementById('incall-name').textContent=callerName;
+  document.getElementById('incall-sub').textContent=callType==='video'?'📹 Video Call':'📞 Voice Call';
+  // Update accept button for video
+  document.getElementById('incall-accept').textContent=callType==='video'?'📹':'📞';
+  const overlay=document.getElementById('incall-overlay');
+  overlay.style.display='flex';
+  startRing();
+  // Auto-dismiss after 30s
+  clearTimeout(G._ringDismissT);
+  G._ringDismissT=setTimeout(()=>declineCall(),30000);
+}
+function declineCall(){
+  stopRing();
+  clearTimeout(G._ringDismissT);
+  document.getElementById('incall-overlay').style.display='none';
+  _incomingCallData=null;
+}
+async function acceptCall(){
+  if(!_incomingCallData)return;
+  const{callerPub,callerAlias,callerName,callerEpub,cid,callId,callType}=_incomingCallData;
+  stopRing();
+  clearTimeout(G._ringDismissT);
+  document.getElementById('incall-overlay').style.display='none';
+  _incomingCallData=null;
+  // Unlock AudioContext NOW while still inside the button click handler
+  try{
+    if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();
+  }catch(e){}
+  // Ensure caller is in DMs
+  if(!G.dms[callerPub]){
+    const peer={pub:callerPub,alias:callerAlias,displayName:callerName,epub:callerEpub};
+    G.dms[callerPub]=peer;await DB.put('dms',peer);
+    renderDMList();subDM(callerPub);schedSave();
+  }
+  // Navigate to their DM and start the call
+  await selDM(callerPub);
+  // Small delay for DM to load, then start call (pass callId + callType so callee matches caller)
+  setTimeout(()=>startCall(callId, callType==='video'),400);
+}
+
+async function startCall(callId, withVideo){
+  if(!G.curDmP)return;const peer=G.curDmP;
+  // Unlock AudioContext during this user gesture so remote audio can play
+  try{
+    if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();
+  }catch(e){}
+  const mediaConstraints=withVideo
+    ?{audio:_audioConstraints(),video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}}
+    :{audio:_audioConstraints(),video:false};
+  try{G.lstream=await navigator.mediaDevices.getUserMedia(mediaConstraints);}
+  catch(e){return toast(withVideo?'Camera/microphone access denied — check browser permissions.':'Microphone access denied.','err');}
+  G.callType=withVideo?'video':'audio';
+  const cid=dmcid(G.user.pub,peer.pub);
+  // Use a unique callId per session so stale signals from previous calls never pollute this one
+  const _callId=callId||Date.now().toString(36);
+  const callRoom=cid+'__'+_callId;
+  G.voice={sid:'sable-calls',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`};
+  if(withVideo){
+    _showVcallOverlay(peer, true);
+  }else{
+    document.getElementById('chat').style.display='none';
+    document.getElementById('voice').style.display='flex';document.getElementById('voice').classList.add('on');
+    document.getElementById('vchname').textContent=G.voice.chName;renderVUI();
+  }
+  // Send ring notification to callee via Gun knock + Worker KV (include callId and callType)
+  G.gun.get('sable-knock').get(`${peer.alias}__${G.user.alias}`).put(JSON.stringify({
+    type:'ring',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,
+    epub:G.user.pair.epub,cid,callId:_callId,callType:G.callType,ts:Date.now()
+  }));
+  sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
+    data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
+  G.gun.get('sable-voice').get('sable-calls').get(callRoom).get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,joined:Date.now(),active:true});
+  // Gun presence handler (fast-path when relay works)
+  G.gun.get('sable-voice').get('sable-calls').get(callRoom).map().on(async(p,pPub)=>{
+    if(!p||pPub===G.user.pub){
+      if(!p&&pPub&&G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
+      return;
+    }
+    if(p.active){
+      if(!G.vpeers[pPub]){
+        const amInitiator=G.user.pub<pPub;
+        await mkConn(pPub,'sable-calls',callRoom,amInitiator);renderVUI();
+      }
+    }else{
+      if(G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
+    }
+  });
+  lsnSigs('sable-calls',callRoom);
+  // Send 'ready' via Worker KV — reliable fallback when Gun relay fails cross-browser.
+  sigSend({room:'sable-calls__'+callRoom,to:peer.pub,from:G.user.pub,type:'ready',data:'1'});
+  toast(`${withVideo?'📹':'📞'} Calling ${peer.displayName||peer.alias}…`);
+}
+
+// ── SETTINGS ─────────────────────────────────────────────
+async function openSettings(){
+  const[msgs,srvs,dms]=await Promise.all([DB.all('messages'),DB.all('servers'),DB.all('dms')]);
+  document.getElementById('stmsg').textContent=msgs.length;
+  document.getElementById('stsrv').textContent=srvs.length;
+  document.getElementById('stdm').textContent=dms.length;
+  const bytes=new Blob([JSON.stringify({msgs,srvs,dms})]).size;
+  document.getElementById('stsz').textContent=bytes>1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(1)+' KB';
+  // Relay
+  try{document.getElementById('relay-url').value=localStorage.getItem('sable-relay')||'';}catch(e){}
+  const connected=G.relayConnected;
+  document.getElementById('relay-status-modal').textContent=connected?'● Connected to relay':'○ No relay connected — check internet or set a custom relay below';
+  document.getElementById('relay-status-modal').style.color=connected?'var(--green)':'var(--yellow)';
+  // Avatar preview
+  const prev=document.getElementById('av-preview');
+  if(prev){
+    prev.style.background=G.user.avatarColor||cf(G.user.pub);
+    if(G.user.avatar){prev.innerHTML=`<img src="${G.user.avatar}"><div class="av-ovl">📷</div>`;}
+    else{prev.innerHTML=`<span id="av-preview-ini">${ini(G.user.displayName||G.user.alias)}</span><div class="av-ovl">📷</div>`;}
+  }
+  document.getElementById('sbio').value=G.user.bio||'';
+  // Color picker
+  const cpRow=document.getElementById('cpick-row');
+  if(cpRow){cpRow.innerHTML=COLORS.map(c=>`<div class="cpick${(G.user.avatarColor||cf(G.user.pub))===c?' on':''}" data-color="${c}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');}
+  // Status picker
+  const curStatus=G.user.status||'online';
+  document.querySelectorAll('.spick').forEach(b=>b.classList.toggle('on',b.dataset.status===curStatus));
+  // Clear password fields
+  ['cp-old','cp-new','cp-conf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  updateFSUI();showM('stm');
+}
+async function saveSettings(){
+  const name=document.getElementById('sname').value.trim();if(!name)return toast('Display name cannot be empty.','err');
+  const bio=(document.getElementById('sbio').value||'').trim().slice(0,80);
+  G.user.displayName=name;G.user.bio=bio;
+  await DB.kv.set('profile',{...G.user,displayName:name,bio});
+  announceProfile(true); // force Worker KV update on profile change
+  document.getElementById('myname').textContent=name;
+  updateMyAv();
+  // Save relay URL
+  const relayUrl=(document.getElementById('relay-url').value||'').trim();
+  try{if(relayUrl)localStorage.setItem('sable-relay',relayUrl);else localStorage.removeItem('sable-relay');}catch(e){}
+  hideM('stm');schedSave();toast('Settings saved!','ok');
+}
+function nuke(){if(!confirm('Delete ALL local Sable data permanently? This cannot be undone.'))return;const stores=['messages','servers','channels','dms','kv'];Promise.all(stores.map(s=>IS_ELECTRON?window.electronAPI.db.clear(s):DB.clear(s))).then(()=>{toast('All data deleted.');hideM('stm');fh=null;logout();});}
+
+// ── PRESENCE ─────────────────────────────────────────────
+// Presence is piggybacked on sable-users (keyed by alias — no special chars).
+// announceProfile() writes a fresh ts every 12 s (via pollFriendEvents).
+// A user is "online" if their ts is < 3 minutes old and status != invisible.
+const ONLINE_TTL=180000; // 3 min
+function setPresence(online){
+  if(!G.user||!G.gun)return;
+  // Write a lightweight heartbeat to sable-presence (alias key, safe chars)
+  G.gun.get('sable-presence').get(G.user.alias).put({alias:G.user.alias,pub:G.user.pub,online,ts:Date.now()});
+}
+function trackPresence(pub){
+  const friend=G.friends[pub]||G.dms[pub];
+  if(!friend||!friend.alias)return;
+  // Primary: sable-users (written by announceProfile every 12 s)
+  G.gun.get('sable-users').get(friend.alias).on(data=>{
+    if(!data||!data.ts)return;
+    const fresh=Date.now()-data.ts<ONLINE_TTL;
+    G.presence[pub]={online:fresh&&data.status!=='invisible',ts:data.ts};
+    renderFriends();
+  });
+  // Secondary: sable-presence heartbeat (alias key, safe for Gun paths)
+  G.gun.get('sable-presence').get(friend.alias).on(data=>{
+    if(!data||!data.ts)return;
+    const fresh=Date.now()-data.ts<ONLINE_TTL;
+    const wasOnline=G.presence[pub]&&G.presence[pub].online;
+    if(data.online&&fresh){
+      // Always keep ts fresh so expiry timer never misfires while user is active
+      G.presence[pub]={online:true,ts:data.ts};
+      if(!wasOnline)renderFriends(); // only re-render on online→offline transition
+    } else if(!data.online&&wasOnline){
+      G.presence[pub]={online:false,ts:data.ts};
+      renderFriends();
+    }
+  });
+  // Also re-render every 60 s to expire stale "online" status
+  if(!G._presenceTimers)G._presenceTimers={};
+  if(!G._presenceTimers[pub]){
+    G._presenceTimers[pub]=setInterval(()=>{
+      if(!G.user||!G.friends[pub]){clearInterval(G._presenceTimers[pub]);delete G._presenceTimers[pub];return;}
+      const p=G.presence[pub];
+      if(p&&p.online&&Date.now()-p.ts>ONLINE_TTL){G.presence[pub]={online:false,ts:p.ts};renderFriends();}
+    },60000);
+  }
+}
+
+// ── FRIENDS ──────────────────────────────────────────────
+function renderFriends(){
+  const list=document.getElementById('friends-list');if(!list)return;
+  const friends=Object.values(G.friends);
+  const incoming=Object.values(G.pendingIn);
+  const outgoing=Object.values(G.pendingOut);
+  if(!friends.length&&!incoming.length&&!outgoing.length){
+    list.innerHTML='<div style="padding:12px 14px;font-size:13px;color:var(--t3)">No friends yet. Click + to add one.</div>';return;
+  }
+  let h='';
+  // ── Incoming requests ─────────────────────────────────────────────────────
+  if(incoming.length){
+    h+=`<div class="fsec-lbl" style="color:var(--yellow)">Pending — ${incoming.length} incoming</div>`;
+    incoming.forEach(f=>{
+      const avH=`${ini(f.displayName||f.alias||'?')}`;
+      h+=`<div class="fitem" style="background:var(--b2)">
+        <div class="fav" style="background:${cf(f.pub)};color:#fff">${avH}</div>
+        <div style="flex:1;overflow:hidden">
+          <div class="fname">${esc(f.displayName||f.alias||'?')}</div>
+          <div class="fstat-txt" style="color:var(--yellow)">Incoming request</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-accent btn-sm" onclick="acceptFriend('${f.pub}')">Accept</button>
+          <button class="btn btn-sm" style="background:var(--b3)" onclick="declineFriend('${f.pub}')">Decline</button>
+        </div>
+      </div>`;
+    });
+  }
+  // ── Outgoing pending ──────────────────────────────────────────────────────
+  if(outgoing.length){
+    h+=`<div class="fsec-lbl" style="color:var(--t3)">Pending — ${outgoing.length} sent</div>`;
+    outgoing.forEach(f=>{
+      const avH=`${ini(f.displayName||f.alias||'?')}`;
+      h+=`<div class="fitem" style="opacity:.65">
+        <div class="fav" style="background:${cf(f.pub)};color:#fff">${avH}</div>
+        <div style="flex:1;overflow:hidden">
+          <div class="fname">${esc(f.displayName||f.alias||'?')}</div>
+          <div class="fstat-txt" style="color:var(--t3)">⏳ Request sent</div>
+        </div>
+        <button class="btn btn-sm" style="background:var(--b3);font-size:11px;flex-shrink:0" onclick="cancelFriendRequest('${f.pub}')">Cancel</button>
+      </div>`;
+    });
+  }
+  // ── Confirmed friends ─────────────────────────────────────────────────────
+  const online=friends.filter(f=>G.presence[f.pub]&&G.presence[f.pub].online);
+  const offline=friends.filter(f=>!G.presence[f.pub]||!G.presence[f.pub].online);
+  if(online.length){
+    h+=`<div class="fsec-lbl">Online — ${online.length}</div>`;
+    online.forEach(f=>{h+=renderFriendItem(f,true);});
+  }
+  if(offline.length){
+    h+=`<div class="fsec-lbl">Offline — ${offline.length}</div>`;
+    offline.forEach(f=>{h+=renderFriendItem(f,false);});
+  }
+  list.innerHTML=h;
+}
+function renderFriendItem(f,online){
+  const av=f.pub&&(G.avatarCache[f.pub]||null);
+  const avH=av?`<img src="${av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(f.displayName||f.alias||'?')}`;
+  return `<div class="fitem" onclick="startDMWith('${f.pub}')" oncontextmenu="showFriendCtx(event,'${f.pub}')">
+    <div class="fav" style="background:${cf(f.pub)};color:#fff">${avH}<div class="fpres ${online?'on':'off'}"></div></div>
+    <div style="flex:1;overflow:hidden"><div class="fname">${esc(f.displayName||f.alias||'?')}</div>
+    <div class="fstat-txt">${online?'● Online':'○ Offline'}</div></div>
+  </div>`;
+}
+function startDMWith(pub){
+  const f=G.friends[pub]||G.dms[pub];if(!f)return;
+  G.dms[pub]=f;DB.put('dms',f);
+  renderDMList();selDM(pub);
+}
+function showFriendCtx(e,pub){
+  e.preventDefault();
+  const m=document.getElementById('ctx');
+  m.innerHTML=`<div class="ctxi" onclick="startDMWith('${pub}');hideCtx()">💬 Message</div>
+    <div class="ctxsep"></div>
+    <div class="ctxi danger" onclick="removeFriend('${pub}');hideCtx()">❌ Remove Friend</div>`;
+  m.style.left=e.clientX+'px';m.style.top=Math.min(e.clientY,window.innerHeight-80)+'px';m.classList.add('on');
+}
+async function removeFriend(pub){
+  delete G.friends[pub];delete G.pendingOut[pub];delete G.pendingIn[pub];
+  try{await DB.del('friends',pub);}catch(e){}
+  renderFriends();toast('Friend removed.');
+  saveFriendsRemote();
+}
+async function cancelFriendRequest(pub){
+  delete G.pendingOut[pub];
+  try{await DB.del('friends',pub);}catch(e){}
+  renderFriends();toast('Friend request cancelled.');
+}
+function _renderUserCard(alias,pub,epub,displayName,avatar,res){
+  if(pub===G.user.pub){res.innerHTML='<div style="color:var(--yellow);font-size:13px;padding:8px 0">That\'s you!</div>';return;}
+  if(avatar)G.avatarCache[pub]=avatar;
+  const avH=avatar?`<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(displayName||alias)}`;
+  const actionHtml=G.friends[pub]
+    ?'<span style="color:var(--green);font-size:13px;font-weight:700">✓ Friends</span>'
+    :G.pendingOut[pub]
+      ?'<span style="color:var(--t3);font-size:13px">⏳ Pending</span>'
+      :G.pendingIn[pub]
+        ?`<button class="btn btn-accent btn-sm" onclick="acceptFriend('${pub}')">Accept</button>`
+        :`<button class="btn btn-accent btn-sm" onclick="addFriend('${pub}','${alias}','${(displayName||alias).replace(/'/g,"\\'")}','${epub}')">Add Friend</button>`;
+  res.innerHTML=`<div class="ucard">
+    <div style="width:40px;height:40px;border-radius:50%;background:${cf(pub)};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;flex-shrink:0">${avH}</div>
+    <div style="flex:1"><div style="font-weight:700;font-size:14px">${esc(displayName||alias)}</div><div style="font-size:12px;color:var(--t3)">@${esc(alias)}</div></div>
+    ${actionHtml}
+  </div>`;
+}
+async function searchUser(){
+  const alias=document.getElementById('sfu').value.trim().toLowerCase();
+  if(!alias)return toast('Enter a username.','err');
+  const res=document.getElementById('sf-result');
+  res.innerHTML='<div style="color:var(--t3);font-size:13px;padding:8px 0">Searching…</div>';
+  // ── Fast path: REST API (instant, definitive) ─────────────────────────────
+  const hasApi=await apiAvailable();
+  if(hasApi){
+    try{
+      const r=await fetch(`${_profileApi}/api/profile/${encodeURIComponent(alias)}`,{signal:AbortSignal.timeout(6000)});
+      if(r.status===404){res.innerHTML='<div style="color:var(--red);font-size:13px;padding:8px 0">User not found. Make sure the username is exact.</div>';return;}
+      if(r.ok){
+        const d=await r.json();
+        _renderUserCard(d.alias,d.pub,d.epub,d.displayName,d.avatar,res);
+        return;
+      }
+    }catch(e){/* network error — fall through to Gun */}
+  }
+  // ── Fallback: Gun relay (works with relay.peer.ooo, slower) ──────────────
+  let found=false;
+  const noRelayMsg=!G.relayConnected
+    ?'❌ Cannot reach relay. Check your internet or set a custom relay in Settings → Network.'
+    :'User not found. Make sure the username is exact and they have logged in at least once on this relay.';
+  const timer=setTimeout(()=>{if(!found)res.innerHTML=`<div style="color:var(--red);font-size:13px;padding:8px 0">${noRelayMsg}</div>`;},10000);
+  G.gun.get('sable-users').get(alias).on((data,key,at,ev)=>{
+    if(found||!data||!data.pub)return;
+    found=true;clearTimeout(timer);
+    if(typeof ev?.off==='function')ev.off();
+    _renderUserCard(alias,data.pub,data.epub,data.displayName,data.avatar,res);
+  });
+}
+async function addFriend(pub,alias,displayName,epub){
+  if(G.friends[pub])return toast(`Already friends with ${displayName}.`,'ok');
+  if(G.pendingOut[pub])return toast(`Request already sent to ${displayName}.`,'ok');
+  const entry={pub,alias,displayName,epub,status:'pending_out',addedAt:Date.now()};
+  G.pendingOut[pub]=entry;
+  try{await DB.put('friends',entry);}catch(e){}
+  renderFriends();
+  // Send friend request via Worker API (reliable cross-device delivery)
+  try{
+    await fetch(`${_profileApi}/api/friend-request`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({from:G.user.alias,to:alias,pub:G.user.pub,epub:G.user.pair.epub,
+        displayName:G.user.displayName||G.user.alias})
+    });
+  }catch(e){console.warn('friend-request API error',e);}
+  toast(`Friend request sent to ${displayName}!`,'ok');
+}
+async function acceptFriend(pub){
+  const entry=G.pendingIn[pub];if(!entry)return;
+  delete G.pendingIn[pub];
+  const confirmed={...entry,status:'confirmed'};
+  G.friends[pub]=confirmed;await DB.put('friends',confirmed);
+  G.dms[pub]=confirmed;await DB.put('dms',confirmed);
+  renderFriends();renderDMList();subDM(pub);trackPresence(pub);schedSave();
+  saveFriendsRemote();
+  // Remove incoming request from Worker KV
+  try{await fetch(`${_profileApi}/api/friend-request/${G.user.alias}/${entry.alias}`,{method:'DELETE'});}catch(e){}
+  // Store acceptance in Worker KV so original sender gets it even if offline
+  try{
+    await fetch(`${_profileApi}/api/friend-accept`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({from:G.user.alias,to:entry.alias,pub:G.user.pub,epub:G.user.pair.epub,
+        displayName:G.user.displayName||G.user.alias})
+    });
+  }catch(e){console.warn('friend-accept API error',e);}
+  toast(`You are now friends with ${entry.displayName||entry.alias}!`,'ok');
+}
+async function declineFriend(pub){
+  const entry=G.pendingIn[pub];if(!entry)return;
+  delete G.pendingIn[pub];
+  try{await DB.del('friends',pub);}catch(e){}
+  // Remove from Worker KV
+  try{await fetch(`${_profileApi}/api/friend-request/${G.user.alias}/${entry.alias}`,{method:'DELETE'});}catch(e){}
+  renderFriends();toast('Friend request declined.','ok');
+}
+
+// ── FRIEND EVENT POLLING ─────────────────────────────────
+// Poll every 12 s while logged in for new requests + accepted requests.
+let _pollTimer=null;
+async function pollFriendEvents(){
+  if(!G.user||!_profileApi)return;
+  // Gun presence (real-time best-effort)
+  announceProfile();
+  setPresence(true);
+  // Worker presence update — throttled to every ~5 polls (~60s) to conserve KV writes
+  G._presencePollCount=(G._presencePollCount||0)+1;
+  if(G._presencePollCount%5===1){
+    fetch(`${_profileApi}/api/presence`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({alias:G.user.alias,pub:G.user.pub,status:G.user.status||'online'})
+    }).catch(()=>{});
+    // Fetch friends' Worker presence as a reliable complement to Gun .on() listeners
+    Object.values(G.friends).forEach(f=>{
+      if(!f||!f.alias)return;
+      fetch(`${_profileApi}/api/presence/${encodeURIComponent(f.alias)}`).then(r=>r.json()).then(d=>{
+        if(!d||!d.ts)return;
+        const fresh=Date.now()-d.ts<300000;
+        const isOnline=fresh&&d.status!=='invisible';
+        const pub=f.pub;
+        const wasOnline=G.presence[pub]&&G.presence[pub].online;
+        G.presence[pub]={online:isOnline,ts:d.ts};
+        if(isOnline!==wasOnline)renderFriends();
+      }).catch(()=>{});
+    });
+  }
+  try{
+    // Check for new incoming friend requests
+    const frRes=await fetch(`${_profileApi}/api/friend-requests/${G.user.alias}`).then(r=>r.json());
+    if(frRes.requests){
+      let newReqs=0;
+      for(const req of frRes.requests){
+        if(!req.pub||!req.epub||req.pub===G.user.pub)continue;
+        if(G.friends[req.pub]||G.pendingIn[req.pub]||G.pendingOut[req.pub])continue;
+        const entry={pub:req.pub,alias:req.from,displayName:req.displayName||req.from,
+          epub:req.epub,status:'pending_in',addedAt:req.ts||Date.now()};
+        G.pendingIn[req.pub]=entry;
+        try{await DB.put('friends',entry);}catch(e){}
+        newReqs++;
+      }
+      if(newReqs){renderFriends();toast(`👋 You have ${newReqs} new friend request${newReqs>1?'s':''}!`,'ok');}
+    }
+  }catch(e){}
+  try{
+    // Check for accepts of requests we sent
+    const faRes=await fetch(`${_profileApi}/api/friend-accepts/${G.user.alias}`).then(r=>r.json());
+    if(faRes.accepts){
+      for(const acc of faRes.accepts){
+        if(!acc.pub||!acc.epub||acc.pub===G.user.pub)continue;
+        if(G.friends[acc.pub])continue; // already friends
+        // Remove outgoing pending entry
+        delete G.pendingOut[acc.pub];
+        const confirmed={pub:acc.pub,alias:acc.from,displayName:acc.displayName||acc.from,
+          epub:acc.epub,status:'confirmed',addedAt:acc.ts||Date.now()};
+        G.friends[acc.pub]=confirmed;await DB.put('friends',confirmed);
+        G.dms[acc.pub]=confirmed;await DB.put('dms',confirmed);
+        renderFriends();renderDMList();subDM(acc.pub);trackPresence(acc.pub);schedSave();
+        saveFriendsRemote();
+        // Clean up from Worker KV
+        try{await fetch(`${_profileApi}/api/friend-accept/${G.user.alias}/${acc.from}`,{method:'DELETE'});}catch(e){}
+        toast(`✅ ${esc(confirmed.displayName)} accepted your friend request!`,'ok');
+      }
+    }
+  }catch(e){}
+}
+function startFriendPolling(){
+  if(_pollTimer)clearInterval(_pollTimer);
+  _pollTimer=setInterval(pollFriendEvents,30000); // every 30s — Gun handles real-time; KV is backup
+  pollFriendEvents(); // immediate first poll
+}
+function stopFriendPolling(){if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}}
+
+// ── AVATAR ───────────────────────────────────────────────
+async function handleAvatarUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const img=new Image();
+    img.onload=async()=>{
+      const c=document.createElement('canvas');c.width=128;c.height=128;
+      const ctx=c.getContext('2d');
+      const s=Math.min(img.width,img.height);
+      const ox=(img.width-s)/2,oy=(img.height-s)/2;
+      ctx.drawImage(img,ox,oy,s,s,0,0,128,128);
+      const dataURL=c.toDataURL('image/jpeg',0.82);
+      G.user.avatar=dataURL;
+      await DB.kv.set('avatar',dataURL);
+      await DB.kv.set('profile',{...G.user});
+      updateMyAv();
+      // Update settings preview
+      const prev=document.getElementById('av-preview');
+      if(prev)prev.innerHTML=`<img src="${dataURL}"><div class="av-ovl">📷</div>`;
+      // Announce to network (force Worker KV update — avatar changed)
+      announceProfile(true);
+      toast('Profile picture updated!','ok');
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function removeAvatar(){
+  G.user.avatar=null;
+  await DB.kv.set('avatar',null);
+  await DB.kv.set('profile',{...G.user});
+  updateMyAv();
+  const prev=document.getElementById('av-preview');
+  if(prev)prev.innerHTML=`<span id="av-preview-ini">${ini(G.user.displayName||G.user.alias)}</span><div class="av-ovl">📷</div>`;
+  announceProfile(true); // force Worker KV update — avatar removed
+  toast('Profile picture removed.','ok');
+}
+
+// ── PROFILE CUSTOMIZATION ────────────────────────────────
+function pickColor(hex){
+  G.user.avatarColor=hex;
+  DB.kv.set('profile',{...G.user});
+  updateMyAv();
+  document.querySelectorAll('.cpick').forEach(c=>c.classList.toggle('on',c.dataset.color===hex));
+  const prev=document.getElementById('av-preview');
+  if(prev&&!G.user.avatar)prev.style.background=hex;
+}
+function pickStatus(s){
+  G.user.status=s;
+  DB.kv.set('profile',{...G.user});
+  document.querySelectorAll('.spick').forEach(b=>b.classList.toggle('on',b.dataset.status===s));
+  G.gun.get('sable-presence').get(G.user.alias).put({pub:G.user.pub,alias:G.user.alias,online:s!=='invisible',status:s,ts:Date.now()});
+  // Also push to Worker immediately so friends see status change quickly
+  if(_profileApi)fetch(`${_profileApi}/api/presence`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({alias:G.user.alias,pub:G.user.pub,status:s})}).catch(()=>{});
+}
+
+// ── CHANGE PASSWORD ──────────────────────────────────────
+async function changePassword(){
+  const oldP=document.getElementById('cp-old').value;
+  const newP=document.getElementById('cp-new').value;
+  const conf=document.getElementById('cp-conf').value;
+  if(!oldP||!newP||!conf)return toast('Fill all password fields.','err');
+  if(newP!==conf)return toast("New passwords don't match.",'err');
+  if(newP.length<8)return toast('New password must be 8+ characters.','err');
+  const stored=await DB.kv.get('acct:'+G.user.alias);
+  if(!stored)return toast('Account data not found.','err');
+  const btn=document.getElementById('cp-btn');
+  btn.textContent='Checking…';btn.disabled=true;
+  const oldWk=await SEA.work(oldP,G.user.alias+':sable:v1');
+  let pair;
+  try{const raw=await SEA.decrypt(stored.encPair,oldWk);pair=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){pair=null;}
+  if(!pair?.pub){
+    btn.textContent='Change Password';btn.disabled=false;
+    return toast('Current password is wrong.','err');
+  }
+  const newWk=await SEA.work(newP,G.user.alias+':sable:v1');
+  const encPair=await SEA.encrypt(JSON.stringify(pair),newWk);
+  await DB.kv.set('acct:'+G.user.alias,{...stored,encPair});
+  btn.textContent='Change Password';btn.disabled=false;
+  ['cp-old','cp-new','cp-conf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  toast('Password changed! Use your new password next time.','ok');
+}
+
+// ── ANNOUNCE PROFILE ─────────────────────────────────────
+// Pushes profile to Gun (real-time) and Cloudflare Worker KV (persistent).
+// Worker writes are throttled to once per 30 min to stay within the free quota.
+// Pass force=true to bypass the throttle (called on login and after profile edits).
+async function announceProfile(force=false){
+  if(!G.user||!G.gun)return;
+  const u=G.user;
+  // Gun — real-time presence cache (free, unlimited)
+  G.gun.get('sable-users').get(u.alias).put({pub:u.pub,epub:u.pair.epub,displayName:u.displayName,avatar:u.avatar||null,status:u.status||'online',ts:Date.now()});
+  // Worker KV — persistent registry; throttle to stay within free write quota
+  if(await apiAvailable()){
+    const now=Date.now();
+    const lastPush=G._lastProfilePush||0;
+    if(force||now-lastPush>30*60*1000){
+      G._lastProfilePush=now;
+      fetch(`${_profileApi}/api/profile`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({alias:u.alias,pub:u.pub,epub:u.pair.epub,displayName:u.displayName,
+          avatar:u.avatar||null,status:u.status||'online',bio:u.bio||''})}).catch(()=>{});
+    }
+  }
+}
+
+// ── RELAY UI ─────────────────────────────────────────────
+// Module-level so it can be called from init() and onLogin().
+function setRelayUI(connected){
+  const dot=document.getElementById('relay-dot');
+  const lbl=document.getElementById('relay-label');
+  const tip=document.getElementById('relay-status');
+  if(!dot)return;
+  dot.style.background=connected?'var(--green)':'var(--red)';
+  lbl.textContent=connected?'relay ✓':'relay ✗';
+  if(tip)tip.title=connected?'Relay: connected — user search and messaging active':'Relay: disconnected — user search unavailable. Check your internet connection.';
+}
+
+// ── STARTUP ──────────────────────────────────────────────
+async function init(){
+  if(!IS_ELECTRON) await (async()=>{ // warm up IndexedDB
+    let r=indexedDB.open('sable-v1',2);
+    await new Promise(res=>{r.onsuccess=res;r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('messages')){const s=d.createObjectStore('messages',{keyPath:'id'});s.createIndex('channelId','channelId',{unique:false});}if(!d.objectStoreNames.contains('servers'))d.createObjectStore('servers',{keyPath:'id'});if(!d.objectStoreNames.contains('channels')){const s=d.createObjectStore('channels',{keyPath:'id'});s.createIndex('serverId','serverId',{unique:false});}if(!d.objectStoreNames.contains('dms'))d.createObjectStore('dms',{keyPath:'pub'});if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv',{keyPath:'k'});if(!d.objectStoreNames.contains('friends'))d.createObjectStore('friends',{keyPath:'pub'});};});
+  })();
+  G.gun=Gun({peers:GUN_PEERS,localStorage:false});
+  G.gu=G.gun.user();
+  // Attach relay status listeners immediately — 'hi' fires as soon as Gun
+  // connects, which happens right after Gun({...}) is called. If we wait
+  // until onLogin() it is already too late; the event has already fired.
+  let _relayHiTs=0;
+  G.gun.on('hi',()=>{
+    _relayHiTs=Date.now();
+    G.relayConnected=true;
+    setRelayUI(true);
+    setTimeout(()=>{
+      if(!G.user)return;
+      announceProfile();
+      // Re-scan all open DM channels to deliver any messages sent while we were offline
+      Object.values(G.dmScans).forEach(fn=>{try{fn();}catch(e){}});
+    },500);
+  });
+  G.gun.on('bye',()=>{
+    const hiSnapshot=_relayHiTs;
+    setTimeout(()=>{
+      if(_relayHiTs===hiSnapshot){G.relayConnected=false;setRelayUI(false);}
+    },6000);
+  });
+  if(!FS&&!IS_ELECTRON) document.getElementById('fsns').style.display='block';
+  // Key bindings
+  document.getElementById('lp')?.addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+  document.getElementById('lu')?.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lp').focus();});
+  document.getElementById('rc')?.addEventListener('keydown',e=>{if(e.key==='Enter')register();});
+  document.getElementById('dmu')?.addEventListener('keydown',e=>{if(e.key==='Enter')startDM();});
+  document.getElementById('csn')?.addEventListener('keydown',e=>{if(e.key==='Enter')createServer();});
+  document.getElementById('jsc')?.addEventListener('keydown',e=>{if(e.key==='Enter')joinServer();});
+  document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
+  console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
+  // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
+  try{
+    const _sess=sessionStorage.getItem('sable-session');
+    if(_sess){
+      const s=JSON.parse(_sess);
+      if(s&&s.pair&&s.pub&&s.alias){
+        G.user={pub:s.pub,alias:s.alias,displayName:s.displayName||s.alias,pair:s.pair};
+        await DB.kv.set('profile',G.user);
+        onLogin();
+        return; // skip showing the auth screen
+      }
+    }
+  }catch(e){try{sessionStorage.removeItem('sable-session');}catch(_){}}
+}
+init();
+</script>
+</body>
+</html>
