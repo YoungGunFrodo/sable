@@ -1268,16 +1268,17 @@ async function onLogin(){
   }
   // Subscribe to knocks — flat composite key "recipientAlias__senderAlias",
   // JSON string value. Three types: friend_request, friend_accept, dm.
-  const _knockSeen=new Set();
+  const _knockSeen=new Map();
   G.gun.get('sable-knock').map().on(async(jsonStr,key)=>{
     if(!jsonStr||typeof jsonStr!=='string')return;
     const sep=key.indexOf('__');if(sep<0)return;
     const recipient=key.slice(0,sep);
     const senderAlias=key.slice(sep+2);
     if(recipient!==G.user.alias)return; // not for us
-    if(_knockSeen.has(key))return; // skip Gun's repeated fires for same knock
-    _knockSeen.add(key);
     let knock;try{knock=JSON.parse(jsonStr);}catch(e){return;}
+    const kts=knock&&knock.ts?knock.ts:jsonStr.length;
+    if(_knockSeen.get(key)===kts)return; // skip repeated fires for same knock payload
+    _knockSeen.set(key,kts);
     if(!knock||!knock.pub||!knock.epub)return;
     if(knock.pub===G.user.pub)return; // ignore self
     const peer={pub:knock.pub,alias:knock.alias||senderAlias,displayName:knock.displayName||knock.alias||senderAlias,epub:knock.epub};
@@ -2119,6 +2120,10 @@ function toggleMobileNav(force){
 function _audioConstraints(){
   return {echoCancellation:true,noiseSuppression:true,autoGainControl:true};
 }
+function _voiceRoomId(sid,chId,chName){
+  const base=(chName||chId||'voice').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  return sid+'__'+(base||chId||'voice');
+}
 async function joinVoice(sid,chId,chName){
   if(G.voice)await leaveVoice();
   if(G._sfuPollT){clearInterval(G._sfuPollT);G._sfuPollT=null;}
@@ -2183,7 +2188,7 @@ async function joinVoice(sid,chId,chName){
     else if(pc.connectionState==='failed')toast('⚠️ Voice connection failed — try leaving and rejoining','err');
   };
   // Set voice state and show UI
-  const room=sid+'__'+chId;
+  const room=_voiceRoomId(sid,chId,chName);
   G.sfuRoom=room;G.voice={sid,chId,chName,isSFU:true};G.curCh=chId;G.curChT='voice';
   G.sfuParticipants={};
   document.getElementById('chat').style.display='none';
@@ -2431,7 +2436,7 @@ async function leaveDmSfu(){
   if(G.dmSfuPC){try{G.dmSfuPC.close();}catch(_){}G.dmSfuPC=null;}
   if(G.lstream){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;}
   if(G.dmSfuVideoStream){G.dmSfuVideoStream.getTracks().forEach(t=>t.stop());G.dmSfuVideoStream=null;}
-  G.dmSfuVideo=false;G.dmSfuVideoSender=null;G.dmSfuVideoMid=null;G.sfuVideo=false;G.sfuVideoStream=null;
+  G.dmSfuVideo=false;G.dmSfuVideoSender=null;G.dmSfuVideoMid=null;
   if(G._voiceCtx){try{G._voiceCtx.close();}catch(_){}G._voiceCtx=null;}
   Object.keys(G.dmSfuParticipants).forEach(pub=>{
     delete G.vpeers[pub];
@@ -2489,7 +2494,6 @@ async function toggleDmSfuCamera(){
     fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
   }
-  G.sfuVideo=G.dmSfuVideo;G.sfuVideoStream=G.dmSfuVideoStream;
   const b=document.getElementById('vcbtn-cam');
   if(b){b.textContent=G.dmSfuVideo?'📹':'🚫';b.classList.toggle('on',!G.dmSfuVideo);}
   const lv=document.getElementById('vcall-local-vid');
@@ -3092,7 +3096,7 @@ function renderVUI(){
   const selfCard=`<div class="vcard${G.muted?' speak':''}${sfuVideo?' has-video':''}" id="vc-self">
     ${selfVidHtml}
     <div class="vavc" style="background:${cf(G.user.pub)};color:#fff">${ini(G.user.displayName||G.user.alias)}</div>
-    <div class="vn">${esc(G.user.displayName||G.user.alias)}<br><small style="color:var(--t3)">(you${G.muted?' · muted':''}${G.sfuVideo?' · 📹':''})</small></div>
+    <div class="vn">${esc(G.user.displayName||G.user.alias)}<br><small style="color:var(--t3)">(you${G.muted?' · muted':''}${sfuVideo?' · 📹':''})</small></div>
   </div>`;
   function peerCard(pub,displayName,alias,stateLabel,stateColor,hasVideo,videoEl){
     const safeId=pub.replace(/[^a-zA-Z0-9]/g,'_');
@@ -3183,7 +3187,6 @@ function stopRing(){
 function showIncomingCall(callerPub,callerAlias,callerName,callerEpub,cid,callId,callType){
   if(G.voice)return; // already in a call
   callType=callType||'audio';
-  if(_profileApi){fetch(`${_profileApi}/api/sig-clear/sable-ring/${encodeURIComponent(G.user.pub)}`,{method:'DELETE'}).catch(()=>{});}
   _incomingCallData={callerPub,callerAlias,callerName,callerEpub,cid,callId,callType};
   // Avatar
   const av=document.getElementById('incall-avatar');
@@ -3207,7 +3210,6 @@ function declineCall(){
   clearTimeout(G._ringDismissT);
   document.getElementById('incall-overlay').style.display='none';
   _incomingCallData=null;
-  if(_profileApi){fetch(`${_profileApi}/api/sig-clear/sable-ring/${encodeURIComponent(G.user.pub)}`,{method:'DELETE'}).catch(()=>{});}
 }
 async function acceptCall(){
   if(!_incomingCallData)return;
@@ -3293,7 +3295,7 @@ async function startSfuDmCall(callId, withVideo, isIncoming){
   const pc=new RTCPeerConnection({iceServers,bundlePolicy:'max-bundle'});
   G.dmSfuPC=pc;G.dmSfuSession=sessionId;G.dmSfuSubscribed=new Map();G.dmSfuTracksMap={};
   G.dmSfuVideo=!!withVideo;G.sfuVideo=G.dmSfuVideo;
-  G.dmSfuVideoStream=null;G.sfuVideoStream=null;
+  G.dmSfuVideoStream=null;
   G.lstream.getTracks().forEach(t=>pc.addTrack(t,G.lstream));
   const offer=await pc.createOffer();await pc.setLocalDescription(offer);
   let answerSdp;
