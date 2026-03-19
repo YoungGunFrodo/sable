@@ -113,7 +113,31 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .hacts{margin-left:auto;display:flex;gap:6px;align-items:center}
 .ibt{width:28px;height:28px;border-radius:5px;border:none;background:none;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
 .ibt:hover{color:var(--t1);background:var(--hover)}
-#msgs{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column}
+#chat{min-height:0}
+#msgs{flex:1;min-height:0;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column}
+.attach-bar{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:rgba(0,0,0,.2);border-top:1px solid rgba(255,255,255,.06)}
+.att-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:4px 8px;font-size:12px}
+.att-chip button{background:none;border:none;color:#fff;cursor:pointer;opacity:.7}
+.att-chip button:hover{opacity:1}
+.abtn{width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.abtn:hover{background:rgba(255,255,255,.12)}
+.msg-atts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.mimg{max-width:260px;max-height:180px;border-radius:10px;display:block;border:1px solid rgba(255,255,255,.1)}
+.mimg.sticker{max-width:120px;max-height:120px;border:none;background:transparent}
+.mfile{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04);font-size:12px;color:#fff;text-decoration:none}
+.mfile span{opacity:.8}
+.mrx{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.rx{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:999px;font-size:12px;color:#fff;cursor:pointer}
+.rx.on{background:rgba(114,137,218,.25);border-color:rgba(114,137,218,.6)}
+.rx-add{opacity:.6}
+.rx-add:hover{opacity:1}
+.rx-pop{position:fixed;z-index:9999;background:#202225;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
+.rx-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.rx-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 6px;cursor:pointer;color:#fff;font-size:16px}
+.sticker-pop{position:absolute;bottom:52px;left:12px;z-index:999;background:#202225;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;display:none;max-width:320px}
+.sticker-grid{display:flex;flex-wrap:wrap;gap:8px;max-height:200px;overflow:auto}
+.sticker-item{width:64px;height:64px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sticker-item img{max-width:58px;max-height:58px}
 .mwelcome{padding:16px 16px 8px;border-top:1px solid rgba(255,255,255,.05);margin-top:auto}
 .mwelcome h3{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
 .mwelcome p{color:var(--t2);font-size:14px}
@@ -413,11 +437,16 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
       <div class="tbar" id="tbar"></div>
       <div class="iarea" id="iarea" style="display:none">
         <div class="ibox">
+          <button class="abtn" onclick="openFilePicker()" title="Attach file">📎</button>
+          <button class="abtn" onclick="toggleStickerPicker()" title="Stickers">😸</button>
           <textarea id="minput" placeholder="Send a message…" rows="1" onkeydown="handleKey(event)" oninput="arz(this)"></textarea>
           <button class="sbtn" onclick="send()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           </button>
         </div>
+        <input id="filepick" type="file" multiple style="display:none" onchange="handleFilePick(event)">
+        <input id="stickerpick" type="file" accept="image/*" style="display:none" onchange="handleStickerUpload(event)">
+        <div class="sticker-pop" id="stickers-pop"></div>
       </div>
     </div>
     <div id="voice">
@@ -594,6 +623,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 
 <div class="ctxm" id="ctx"></div>
 <div id="toasts"></div>
+<div id="react-pop" class="rx-pop"></div>
 <div id="audios" style="display:none"></div>
 
 <!-- ── Incoming Call Overlay ── -->
@@ -759,8 +789,17 @@ async function pickFile(fromBanner){
   if(!FS){ toast('File storage requires Chrome or Edge.','err'); return; }
   dismissBanner();
   try{
-    const h=await window.showSaveFilePicker({suggestedName:`sable-${G.user?.alias||'data'}.json`,types:[{description:'Sable Data',accept:{'application/json':['.json']}}]});
-    fh=h; await DB.kv.set('fh',h); await saveFile(true); updateFSUI();
+    let h=null;
+    if(window.showOpenFilePicker){
+      try{
+        const picks=await window.showOpenFilePicker({multiple:false,types:[{description:'Sable Data',accept:{'application/json':['.json']}}]});
+        if(picks&&picks[0])h=picks[0];
+      }catch(e){ if(e.name!=='AbortError') throw e; }
+    }
+    if(!h){
+      h=await window.showSaveFilePicker({suggestedName:`sable-${G.user?.alias||'data'}.json`,types:[{description:'Sable Data',accept:{'application/json':['.json']}}]});
+    }
+    fh=h; await DB.kv.set('fh',h); await loadFile(); await saveFile(true); updateFSUI();
     toast('✅ Linked! Auto-saving to disk.','ok');
   }catch(e){ if(e.name!=='AbortError') toast('Could not link file: '+e.message,'err'); }
   if(fromBanner) dismissBanner();
@@ -851,6 +890,9 @@ const G={
   srvs:{}, dms:{}, friends:{}, presence:{}, avatarCache:{},
   voice:null, vpeers:{}, lstream:null, muted:false, deafened:false,
   callType:'audio',  // 'audio'|'video' for current DM call
+  pendingAttachments:[],
+  stickers:[],
+  _rxPending:{},
   // SFU state (Cloudflare Calls group voice/video)
   sfuPC:null, sfuSession:null, sfuRoom:null,
   sfuParticipants:{}, sfuSubscribed:new Map(), sfuTracksMap:{},
@@ -888,6 +930,39 @@ function toast(m,t='info',d=4000){const e=document.createElement('div');e.classN
 function showM(id){document.getElementById(id).classList.add('on')}
 function hideM(id){document.getElementById(id).classList.remove('on')}
 function copyEl(el,msg){navigator.clipboard.writeText(el.textContent).then(()=>toast(msg,'ok'))}
+const MAX_FILE_BYTES=1500000;
+const MAX_STICKER_BYTES=300000;
+const RX_EMOJIS=['👍','❤️','😂','😮','😢','😡','🔥','🎉'];
+const hsz=b=>b>1048576?(b/1048576).toFixed(1)+' MB':(b/1024).toFixed(0)+' KB';
+async function saveFriendsRemote(){
+  if(!_profileApi||!G.user||!G.user.pair)return;
+  try{
+    const list=Object.values(G.friends||{});
+    const enc=await SEA.encrypt(JSON.stringify(list),G.user.pair);
+    await fetch(`${_profileApi}/api/friends`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pub:G.user.pub,enc})});
+  }catch(e){}
+}
+async function loadFriendsRemote(){
+  if(!_profileApi||!G.user)return;
+  try{
+    const r=await fetch(`${_profileApi}/api/friends/${encodeURIComponent(G.user.pub)}`);
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d||!d.enc)return;
+    const dec=await SEA.decrypt(d.enc,G.user.pair);
+    const list=Array.isArray(dec)?dec:[];
+    let changed=false;
+    for(const f of list){
+      if(!f||!f.pub||f.pub===G.user.pub)continue;
+      if(G.friends[f.pub]||G.pendingOut[f.pub]||G.pendingIn[f.pub])continue;
+      G.friends[f.pub]=f;
+      try{await DB.put('friends',f);}catch(e){}
+      changed=true;
+    }
+    if(changed)renderFriends();
+  }catch(e){}
+}
 
 // ── AUTH ─────────────────────────────────────────────────
 function switchTab(t){
@@ -1073,6 +1148,7 @@ async function onLogin(){
   setRelayUI(G.relayConnected);
   await initFS();
   await loadAll();
+  await loadFriendsRemote();
   // Fetch any pending friend requests from Worker API (reliable cross-device delivery)
   if(_profileApi){
     try{
@@ -1173,6 +1249,7 @@ async function loadAll(){
   try{const allMsgs=await DB.all('messages');for(const m of allMsgs){if(m.id)G.seen.add(m.id);}}catch(e){}
   for(const pub of Object.keys(G.dms)) subDM(pub);
   Object.keys(G.friends).forEach(pub=>trackPresence(pub));
+  try{G.stickers=await DB.kv.get('stickers')||[];}catch(e){G.stickers=[];}
 }
 
 // ── SERVERS ──────────────────────────────────────────────
@@ -1421,7 +1498,9 @@ function subDM(pPub){
     G.seen.add(msgId); // only mark seen after epub is confirmed available
     let msg=null;
     try{const s=await SEA.secret(peer.epub,G.user.pair);const d=await SEA.decrypt(enc,s);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}
-    if(!msg||!msg.content){G.seen.delete(msgId);return;} // remove from seen so it can be retried
+    if(!msg){G.seen.delete(msgId);return;} // remove from seen so it can be retried
+    if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
+    if(!msg.content && !(msg.attachments&&msg.attachments.length)){G.seen.delete(msgId);return;}
     const stored={...msg,channelId:cid,id:msgId};
     await DB.put('messages',stored);schedSave();
     if(G.curCh===cid){
@@ -1434,8 +1513,11 @@ function subDM(pPub){
       // Browser notification (if permission granted)
       if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
         const _peer=G.dms[pPub];
-        try{new Notification(_peer?((_peer.displayName||_peer.alias)+' says:'):'New message',
-          {body:msg.content.slice(0,80),tag:'sable-dm-'+pPub});}catch(e){}
+        try{
+          const body=msg.content?msg.content.slice(0,80):'[Attachment]';
+          new Notification(_peer?((_peer.displayName||_peer.alias)+' says:'):'New message',
+            {body,tag:'sable-dm-'+pPub});
+        }catch(e){}
       }
     }
   }
@@ -1489,6 +1571,7 @@ async function selDM(pPub){
   const peer=G.dms[pPub];if(!peer)return;
   G.curDmP=peer;const cid=dmcid(G.user.pub,pPub);
   G.curCh=cid;G.curChT='dm';G.curSrv='dm';
+  G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
   // Clear unread badge for this conversation
   if(G.dmUnread)G.dmUnread[pPub]=0;
   // Start periodic scan for this DM so messages arrive even without a ping
@@ -1524,6 +1607,7 @@ async function selDM(pPub){
 function selCh(sid,chId,type){
   if(G.voice)leaveVoice();
   G.curCh=chId;G.curChT=type;G.curSrv=sid;
+  G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
   const s=G.srvs[sid],ch=s&&s.channels&&s.channels[chId];if(!ch)return;
   document.getElementById('voice').style.display='none';document.getElementById('chat').style.display='flex';
   document.getElementById('chat-title').textContent='#'+ch.name;
@@ -1546,7 +1630,9 @@ async function loadChMsgs(sid,chId){
     if(sKey){try{const d=await SEA.decrypt(enc,sKey);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}}
     // Fallback: raw JSON (old messages)
     if(!msg){try{msg=typeof enc==='string'?JSON.parse(enc):enc;}catch(e){return;}}
-    if(!msg||!msg.content)return;
+    if(!msg)return;
+    if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
+    if(!msg.content && !(msg.attachments&&msg.attachments.length))return;
     const stored={...msg,channelId:chId,id:msgId};
     await DB.put('messages',stored);schedSave();
     if(G.curCh===chId)appendMsg(stored);
@@ -1554,6 +1640,7 @@ async function loadChMsgs(sid,chId){
 }
 function clearChat(){
   G.curCh=null;G.curChT=null;
+  G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
   document.getElementById('chat-title').textContent='Select a channel';
   document.getElementById('msgs').innerHTML=`<div class="empty"><svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" style="opacity:.25"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg><h3>Welcome to Sable</h3><p>Select a channel or DM to start chatting</p></div>`;
   document.getElementById('iarea').style.display='none';
@@ -1571,29 +1658,230 @@ function renderMsgList(msgs,title,sub){
 }
 function appendMsg(msg){const c=document.getElementById('msgs');renderMsgInto(msg,c);c.scrollTop=c.scrollHeight;}
 function renderMsgInto(msg,c){
+  msg=applyQueuedReactionsToMsg(msg);
   const g=_la===msg.authorPub&&(msg.ts-_lt)<300000;
   _la=msg.authorPub;_lt=msg.ts||Date.now();
   const el=document.createElement('div');
+  el.dataset.mid=msg.id;
+  const atts=renderAttachments(msg);
+  const rxs=renderReactions(msg);
   if(!g){
     el.className='mg mav-row';
     const _av=msg.authorPub&&(G.user&&G.user.pub===msg.authorPub?G.user.avatar:G.avatarCache[msg.authorPub]);
     const _avH=_av?`<img src="${_av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(msg.authorName||'?')}`;
     el.innerHTML=`<div class="mav" style="background:${cf(msg.authorPub||'')};color:#fff">${_avH}</div>
       <div class="mb"><div class="mh"><span class="mauthor">${esc(msg.authorName||'Unknown')}</span><span class="mts">${fmtTs(msg.ts)}</span></div>
-      <div class="mc">${lfy(esc(msg.content||''))}</div></div>`;
+      <div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div></div>`;
   }else{
-    el.className='mg mcont';el.innerHTML=`<div class="mc">${lfy(esc(msg.content||''))}</div>`;
+    el.className='mg mcont';el.innerHTML=`<div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div>`;
   }
   el.dataset.ts=msg.ts;c.appendChild(el);
 }
+function renderAttachments(msg){
+  const atts=(msg&&msg.attachments)||[];
+  if(!atts.length)return '';
+  return `<div class="msg-atts">${atts.map(a=>{
+    if(a.kind==='sticker'){
+      return `<img class="mimg sticker" src="${a.data}" alt="${esc(a.name||'sticker')}">`;
+    }
+    if(a.kind==='image'){
+      return `<a href="${a.data}" target="_blank" rel="noopener"><img class="mimg" src="${a.data}" alt="${esc(a.name||'image')}"></a>`;
+    }
+    return `<a class="mfile" download="${esc(a.name||'file')}" href="${a.data}"><strong>${esc(a.name||'file')}</strong><span>${hsz(a.size||0)}</span></a>`;
+  }).join('')}</div>`;
+}
+function renderReactions(msg){
+  const rx=msg&&msg.reactions?msg.reactions:{};
+  const keys=Object.keys(rx||{});
+  const items=keys.map(k=>({k,v:rx[k]})).filter(x=>x.v&&x.v.by&&Object.keys(x.v.by).length);
+  const chips=items.map(({k,v})=>{
+    const on=v.by&&v.by[G.user.pub];
+    const label=v.kind==='emoji'
+      ? esc(v.value)
+      : (v.data?`<img src="${v.data}" style="width:18px;height:18px;vertical-align:-4px">`:'🧷');
+    const count=Object.keys(v.by).length;
+    return `<span class="rx ${on?'on':''}" onclick="toggleReactionKey('${msg.id}','${encodeURIComponent(k)}')">${label} ${count}</span>`;
+  }).join('');
+  const add=`<span class="rx rx-add" onclick="openReactPicker(event,'${msg.id}')">+</span>`;
+  return `<div class="mrx">${chips}${add}</div>`;
+}
+function applyQueuedReactionsToMsg(msg){
+  const list=G._rxPending&&G._rxPending[msg.id];
+  if(!list||!list.length)return msg;
+  delete G._rxPending[msg.id];
+  for(const rx of list){ applyReactionToMsg(msg,rx,false); }
+  DB.put('messages',msg).then(()=>schedSave()).catch(()=>{});
+  return msg;
+}
+async function toggleReactionKey(msgId,keyEnc){
+  const key=decodeURIComponent(keyEnc||'');
+  const msg=await DB.get('messages',msgId);
+  if(!msg||!msg.reactions||!msg.reactions[key])return;
+  const entry=msg.reactions[key];
+  const add=!(entry.by&&entry.by[G.user.pub]);
+  applyReactionToMsg(msg,{targetId:msgId,rKey:key,rKind:entry.kind,value:entry.value,name:entry.name,data:entry.data,authorPub:G.user.pub,add},true);
+  await DB.put('messages',msg);schedSave();updateMsgReactions(msg);
+  await sendReactionMessage(msgId,entry.kind,entry,add);
+}
+async function addReaction(msgId,kind,value,meta){
+  const msg=await DB.get('messages',msgId);
+  if(!msg)return;
+  const key=kind==='emoji'?`e:${value}`:`s:${meta.id}`;
+  const entry=msg.reactions&&msg.reactions[key];
+  const add=!(entry&&entry.by&&entry.by[G.user.pub]);
+  applyReactionToMsg(msg,{targetId:msgId,rKey:key,rKind:kind,value,name:meta&&meta.name,data:meta&&meta.data,authorPub:G.user.pub,add},true);
+  await DB.put('messages',msg);schedSave();updateMsgReactions(msg);
+  await sendReactionMessage(msgId,kind,{value,name:meta&&meta.name,data:meta&&meta.data},add);
+}
+function applyReactionToMsg(msg,rx,notify){
+  msg.reactions=msg.reactions||{};
+  const key=rx.rKey||((rx.rKind==='emoji')?`e:${rx.value}`:`s:${rx.value&&rx.value.id?rx.value.id:rx.rKey}`);
+  let entry=msg.reactions[key];
+  if(!entry){
+    entry={kind:rx.rKind,value:rx.value||rx.value?.id||'',name:rx.name||'',data:rx.data||'',by:{}};
+  }
+  entry.by=entry.by||{};
+  if(rx.add) entry.by[rx.authorPub]=true;
+  else delete entry.by[rx.authorPub];
+  if(Object.keys(entry.by).length===0){ delete msg.reactions[key]; }
+  else msg.reactions[key]=entry;
+  if(notify)updateMsgReactions(msg);
+}
+function updateMsgReactions(msg){
+  const el=document.querySelector(`[data-mid="${msg.id}"] .mrx`);
+  if(!el)return;
+  el.outerHTML=renderReactions(msg);
+}
+async function handleIncomingReaction(msg){
+  const target=await DB.get('messages',msg.targetId);
+  if(!target){
+    if(!G._rxPending)G._rxPending={};
+    if(!G._rxPending[msg.targetId])G._rxPending[msg.targetId]=[];
+    G._rxPending[msg.targetId].push(msg);
+    return;
+  }
+  applyReactionToMsg(target,{targetId:msg.targetId,rKey:msg.rKey,rKind:msg.rKind,value:msg.value,name:msg.name,data:msg.data,authorPub:msg.authorPub,add:!!msg.add},false);
+  await DB.put('messages',target);schedSave();
+  updateMsgReactions(target);
+}
+async function sendReactionMessage(targetId,kind,entry,add){
+  if(!G.curCh)return;
+  const msg={id:gid(12),kind:'reaction',targetId,rKind:kind,rKey:kind==='emoji'?`e:${entry.value}`:`s:${(entry.value&&entry.value.id)||entry.id||entry.value}`,value:entry.value||'',name:entry.name||'',data:entry.data||'',add,authorPub:G.user.pub,authorName:G.user.displayName||G.user.alias,ts:Date.now()};
+  if(G.curChT==='dm'){
+    const peer=G.curDmP;if(!peer||!peer.epub)return;
+    const secret=await SEA.secret(peer.epub,G.user.pair);
+    const enc=await SEA.encrypt(JSON.stringify(msg),secret);
+    G.gun.get('sable-dms').get(G.curCh).get(msg.id).put(enc);
+    if(_profileApi){
+      fetch(`${_profileApi}/api/dm-send`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cid:G.curCh,msgId:msg.id,enc,ts:msg.ts,senderPub:G.user.pub})
+      }).catch(()=>{});
+    }
+  }else{
+    const srv=G.srvs[G.curSrv];const sKey=srv&&srv.serverKey;
+    let payload;
+    if(sKey){try{payload=await SEA.encrypt(JSON.stringify(msg),sKey);}catch(e){payload=JSON.stringify(msg);}}
+    else{payload=JSON.stringify(msg);}
+    G.gun.get('sable-msgs').get(G.curSrv).get(G.curCh).get(msg.id).put(payload);
+  }
+}
+function openReactPicker(ev,msgId){
+  ev.preventDefault();ev.stopPropagation();
+  const pop=document.getElementById('react-pop');
+  G._reactTarget=msgId;
+  const emojiRow=RX_EMOJIS.map(e=>`<button class="rx-btn" onclick="addReaction('${msgId}','emoji','${esc(e)}')">${e}</button>`).join('');
+  const stickerRow=(G.stickers||[]).map(s=>`<button class="rx-btn" onclick="addStickerReaction('${msgId}','${s.id}')"><img src="${s.data}" style="width:20px;height:20px"></button>`).join('');
+  const uploadBtn=`<button class="rx-btn" onclick="openStickerPicker()">＋</button>`;
+  pop.innerHTML=`<div class="rx-row">${emojiRow}</div><div class="rx-row">${stickerRow}${uploadBtn}</div>`;
+  pop.style.display='block';
+  pop.style.left=Math.min(window.innerWidth-240,ev.clientX)+'px';
+  pop.style.top=Math.min(window.innerHeight-180,ev.clientY)+'px';
+}
+function closeReactPicker(){const pop=document.getElementById('react-pop');if(pop)pop.style.display='none';}
+document.addEventListener('click',e=>{ if(!e.target.closest('.rx-pop')) closeReactPicker(); });
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#stickers-pop')&&!e.target.closest('.abtn')) toggleStickerPicker(false);
+});
+
+function openFilePicker(){const el=document.getElementById('filepick');if(el)el.click();}
+function openStickerUpload(){const el=document.getElementById('stickerpick');if(el)el.click();}
+function openStickerPicker(){toggleStickerPicker(true);}
+function toggleStickerPicker(force){
+  const pop=document.getElementById('stickers-pop');if(!pop)return;
+  if(force===true)pop.style.display='block';
+  else if(force===false)pop.style.display='none';
+  else pop.style.display=pop.style.display==='block'?'none':'block';
+  renderStickerPicker();
+}
+function renderStickerPicker(){
+  const pop=document.getElementById('stickers-pop');if(!pop)return;
+  const items=(G.stickers||[]).map(s=>`<div class="sticker-item" onclick="sendSticker('${s.id}')"><img src="${s.data}"></div>`).join('');
+  pop.innerHTML=`<div class="rx-row"><button class="rx-btn" onclick="openStickerUpload()">Upload</button></div><div class="sticker-grid">${items||'<span style="opacity:.7">No stickers yet</span>'}</div>`;
+}
+async function handleFilePick(event){
+  const files=[...event.target.files];event.target.value='';
+  for(const f of files){ await addAttachmentFromFile(f); }
+  renderAttachmentBar();
+}
+async function handleStickerUpload(event){
+  const f=event.target.files[0];event.target.value='';
+  if(!f)return;
+  if(f.size>MAX_STICKER_BYTES)return toast('Sticker too large (max 300 KB).','err');
+  const data=await readFileAsDataURL(f);
+  const sticker={id:gid(8),name:f.name||'sticker',data};
+  G.stickers=[...(G.stickers||[]),sticker];
+  await DB.kv.set('stickers',G.stickers);
+  renderStickerPicker();
+  toast('Sticker added!','ok');
+}
+function sendSticker(id){
+  const s=(G.stickers||[]).find(x=>x.id===id);
+  if(!s)return;
+  G.pendingAttachments=[{id:gid(8),name:s.name,size:(s.data||'').length,type:'image',kind:'sticker',data:s.data}];
+  renderAttachmentBar();toggleStickerPicker(false);send();
+}
+function addStickerReaction(msgId,stickerId){
+  const s=(G.stickers||[]).find(x=>x.id===stickerId);
+  if(!s)return;
+  addReaction(msgId,'sticker',s.id,s);
+  closeReactPicker();
+}
+async function addAttachmentFromFile(f){
+  if(f.size>MAX_FILE_BYTES){toast(`"${f.name}" is too large (max 1.5 MB).`,'err');return;}
+  const data=await readFileAsDataURL(f);
+  const kind=(f.type||'').startsWith('image/')?'image':'file';
+  G.pendingAttachments.push({id:gid(8),name:f.name,size:f.size,type:f.type,kind,data});
+}
+function readFileAsDataURL(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+    r.readAsDataURL(f);
+  });
+}
+function renderAttachmentBar(){
+  const t=document.getElementById('tbar');if(!t)return;
+  if(!G.pendingAttachments||!G.pendingAttachments.length){t.innerHTML='';t.classList.remove('attach-bar');return;}
+  t.classList.add('attach-bar');
+  t.innerHTML=G.pendingAttachments.map(a=>`<div class="att-chip">${esc(a.name||'file')}<span style="opacity:.7">${hsz(a.size||0)}</span><button onclick="removeAttachment('${a.id}')">✕</button></div>`).join('');
+}
+function removeAttachment(id){
+  G.pendingAttachments=G.pendingAttachments.filter(a=>a.id!==id);
+  renderAttachmentBar();
+}
 async function send(){
-  const inp=document.getElementById('minput');const content=inp.value.trim();if(!content||!G.curCh)return;
+  const inp=document.getElementById('minput');const content=inp.value.trim();
+  if(!G.curCh)return;
+  const atts=(G.pendingAttachments||[]);
+  if(!content&&!atts.length)return;
   inp.value='';inp.style.height='auto';
   const id=gid(12);
-  const msg={id,content,authorPub:G.user.pub,authorName:G.user.displayName||G.user.alias,ts:Date.now()};
+  const msg={id,content,attachments:atts,authorPub:G.user.pub,authorName:G.user.displayName||G.user.alias,ts:Date.now()};
   const stored={...msg,channelId:G.curCh};
   G.seen.add(id); // mark own message so Gun echo doesn't re-render it
   await DB.put('messages',stored);appendMsg(stored);_la=msg.authorPub;_lt=msg.ts;schedSave();
+  G.pendingAttachments=[];renderAttachmentBar();
   if(G.curChT==='dm'){
     const peer=G.curDmP;if(!peer||!peer.epub)return;
     const secret=await SEA.secret(peer.epub,G.user.pair);
@@ -1636,12 +1924,15 @@ function renderMbrs(sid){
 function toggleMbrs(){const s=document.getElementById('mbrs');s.style.display=s.style.display==='none'?'block':'none';}
 
 // ── VOICE — Cloudflare Calls SFU for server channels ────
+function _audioConstraints(){
+  return {echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+}
 async function joinVoice(sid,chId,chName){
   if(G.voice)await leaveVoice();
   // Unlock AudioContext during this user gesture
   try{if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();}catch(e){}
   // Microphone
-  try{G.lstream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});}
+  try{G.lstream=await navigator.mediaDevices.getUserMedia({audio:_audioConstraints(),video:false});}
   catch(e){return toast('Microphone access denied.','err');}
   // Create CF Calls session
   let sessionId;
@@ -2032,8 +2323,15 @@ function lsnSigs(sid,chId){
     });
   });
   // Worker KV signaling poll (reliable cross-browser fallback, 2s interval)
+  if(_profileApi){
+    const room=sid+'__'+chId;
+    if(G._sigPollT&&G._sigRoom&&G._sigRoom!==room){
+      clearInterval(G._sigPollT);G._sigPollT=null;G._sigRoom=null;
+    }
+  }
   if(_profileApi&&!G._sigPollT){
     const room=sid+'__'+chId;
+    G._sigRoom=room;
     let sigSince=0;
     const _sigSeen=new Set();
     G._sigPollT=setInterval(async()=>{
@@ -2055,6 +2353,15 @@ function lsnSigs(sid,chId){
               const amInit=G.user.pub<sp;
               await mkConn(sp,sid,chId,amInit);
               renderVUI();
+            }else if(G.vpeers[sp]&&G.vpeers[sp].pc){
+              // Callee just joined — re-send our offer in case they missed it
+              const pc=G.vpeers[sp].pc;
+              const ld=pc.localDescription;
+              if(ld&&ld.type==='offer'){
+                const offerStr=JSON.stringify(ld);
+                G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('offer').put(offerStr);
+                sigSend({room,to:sp,from:G.user.pub,type:'offer',data:offerStr});
+              }
             }
             continue;
           }
@@ -2212,7 +2519,7 @@ async function leaveVoice(){
   G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({active:false,pub:G.user.pub});
   Object.keys(G.vpeers).forEach(rmPeer);
   if(G.lstream){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;}
-  if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;}
+  if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;G._sigRoom=null;}
   if(G._voiceCtx){try{G._voiceCtx.close();}catch(e){}G._voiceCtx=null;}
   G.voice=null;G.muted=false;G.deafened=false;G.callType='audio';
   // Hide both voice channel UI and video call overlay
@@ -2497,8 +2804,8 @@ async function startCall(callId, withVideo){
     if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();
   }catch(e){}
   const mediaConstraints=withVideo
-    ?{audio:true,video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}}
-    :{audio:true,video:false};
+    ?{audio:_audioConstraints(),video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}}
+    :{audio:_audioConstraints(),video:false};
   try{G.lstream=await navigator.mediaDevices.getUserMedia(mediaConstraints);}
   catch(e){return toast(withVideo?'Camera/microphone access denied — check browser permissions.':'Microphone access denied.','err');}
   G.callType=withVideo?'video':'audio';
@@ -2524,12 +2831,23 @@ async function startCall(callId, withVideo){
   G.gun.get('sable-voice').get('sable-calls').get(callRoom).get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,joined:Date.now(),active:true});
   // Gun presence handler (fast-path when relay works)
   G.gun.get('sable-voice').get('sable-calls').get(callRoom).map().on(async(p,pPub)=>{
-    if(!p||pPub===G.user.pub)return;
-    if(p.active&&!G.vpeers[pPub]){
-      const amInitiator=G.user.pub<pPub;
-      await mkConn(pPub,'sable-calls',callRoom,amInitiator);renderVUI();
+    if(!p||pPub===G.user.pub){
+      if(!p&&pPub&&G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
+      return;
+    }
+    if(p.active){
+      if(!G.vpeers[pPub]){
+        const amInitiator=G.user.pub<pPub;
+        await mkConn(pPub,'sable-calls',callRoom,amInitiator);renderVUI();
+      }
+    }else{
+      if(G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
     }
   });
+  // Deterministic initiator — create the peer connection immediately so
+  // the offer is available even if presence/ready signals are delayed.
+  const amInitiator=G.user.pub<peer.pub;
+  await mkConn(peer.pub,'sable-calls',callRoom,amInitiator);
   lsnSigs('sable-calls',callRoom);
   // Send 'ready' via Worker KV — reliable fallback when Gun relay fails cross-browser.
   sigSend({room:'sable-calls__'+callRoom,to:peer.pub,from:G.user.pub,type:'ready',data:'1'});
@@ -2709,6 +3027,7 @@ async function removeFriend(pub){
   delete G.friends[pub];delete G.pendingOut[pub];delete G.pendingIn[pub];
   try{await DB.del('friends',pub);}catch(e){}
   renderFriends();toast('Friend removed.');
+  saveFriendsRemote();
 }
 async function cancelFriendRequest(pub){
   delete G.pendingOut[pub];
@@ -2788,6 +3107,7 @@ async function acceptFriend(pub){
   G.friends[pub]=confirmed;await DB.put('friends',confirmed);
   G.dms[pub]=confirmed;await DB.put('dms',confirmed);
   renderFriends();renderDMList();subDM(pub);trackPresence(pub);schedSave();
+  saveFriendsRemote();
   // Remove incoming request from Worker KV
   try{await fetch(`${_profileApi}/api/friend-request/${G.user.alias}/${entry.alias}`,{method:'DELETE'});}catch(e){}
   // Store acceptance in Worker KV so original sender gets it even if offline
@@ -2869,6 +3189,7 @@ async function pollFriendEvents(){
         G.friends[acc.pub]=confirmed;await DB.put('friends',confirmed);
         G.dms[acc.pub]=confirmed;await DB.put('dms',confirmed);
         renderFriends();renderDMList();subDM(acc.pub);trackPresence(acc.pub);schedSave();
+        saveFriendsRemote();
         // Clean up from Worker KV
         try{await fetch(`${_profileApi}/api/friend-accept/${G.user.alias}/${acc.from}`,{method:'DELETE'});}catch(e){}
         toast(`✅ ${esc(confirmed.displayName)} accepted your friend request!`,'ok');
