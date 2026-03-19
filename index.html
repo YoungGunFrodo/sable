@@ -2278,6 +2278,11 @@ async function leaveSFU(){
   if(camBtn){camBtn.textContent='📷';camBtn.style.background='var(--bg3)';camBtn.style.color='var(--t1)';}
   document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
   document.getElementById('chat').style.display='flex';
+  // If this was a DM call with video, hide the overlay too.
+  document.getElementById('vcall-overlay').classList.remove('on');
+  const rv=document.getElementById('vcall-remote-vid');if(rv){rv.srcObject=null;rv.style.display='none';}
+  const lv=document.getElementById('vcall-local-vid');if(lv){lv.srcObject=null;lv.style.display='none';}
+  document.getElementById('vcall-no-vid').style.display='flex';
   if(sid&&sid!=='dm'){const tChs=Object.values(G.srvs[sid]&&G.srvs[sid].channels||{}).filter(c=>c&&c.type==='text');if(tChs.length)selCh(sid,tChs[0].id,'text');}
   if(G.curSrv===sid)renderChList(sid);
   toast('Left voice channel.');
@@ -2967,7 +2972,10 @@ async function acceptCall(){
 }
 
 async function startCall(callId, withVideo){
-  if(!G.curDmP)return;const peer=G.curDmP;
+  if(!G.curDmP)return;
+  const peer=G.curDmP;
+  // One active call at a time
+  if(G.voice) await leaveVoice();
   // Unlock AudioContext during this user gesture so remote audio can play
   try{
     if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -2980,54 +2988,96 @@ async function startCall(callId, withVideo){
   catch(e){return toast(withVideo?'Camera/microphone access denied — check browser permissions.':'Microphone access denied.','err');}
   G.callType=withVideo?'video':'audio';
   const cid=dmcid(G.user.pub,peer.pub);
-  // Use a unique callId per session so stale signals from previous calls never pollute this one
   const _callId=callId||Date.now().toString(36);
-  const callRoom=cid+'__'+_callId;
-  G.voice={sid:'sable-calls',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`};
+  const callRoom='dm__'+cid+'__'+_callId;
+  const isCaller=!callId;
   ringLog('call:start',{to:peer.alias||peer.pub,callId:_callId,callType:G.callType});
+  // Caller only: send ring to callee
+  if(isCaller){
+    G.gun.get('sable-knock').get(`${peer.alias}__${G.user.alias}`).put(JSON.stringify({
+      type:'ring',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,
+      epub:G.user.pair.epub,cid,callId:_callId,callType:G.callType,ts:Date.now()
+    }));
+    if(_profileApi){
+      ringLog('call:ring-send',{to:peer.pub,callId:_callId,callType:G.callType,via:'worker'});
+      sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
+        data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
+    }
+  }
+  // Create CF Calls session
+  let sessionId;
+  try{
+    const sr=await fetch(`${_profileApi}/api/sfu/session`,{method:'POST',signal:AbortSignal.timeout(6000)});
+    if(!sr.ok)throw new Error('status '+sr.status);
+    ({sessionId}=await sr.json());
+  }catch(e){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;return toast('Could not connect to voice server — check your internet.','err');}
+  const iceServers=await _getIceServers();
+  const pc=new RTCPeerConnection({iceServers,bundlePolicy:'max-bundle'});
+  G.sfuPC=pc;G.sfuSession=sessionId;G.sfuSubscribed=new Map();G.sfuTracksMap={};
+  // Add local tracks
+  G.lstream.getAudioTracks().forEach(t=>pc.addTrack(t,G.lstream));
+  if(withVideo) G.lstream.getVideoTracks().forEach(t=>pc.addTrack(t,G.lstream));
+  // Publish local tracks to SFU
+  const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+  let answerSdp;
+  try{
+    let audioMid='0',videoMid='1';
+    try{
+      const aTr=pc.getTransceivers().find(tr=>tr&&tr.sender&&tr.sender.track&&tr.sender.track.kind==='audio');
+      if(aTr&&aTr.mid!=null)audioMid=String(aTr.mid);
+      const vTr=pc.getTransceivers().find(tr=>tr&&tr.sender&&tr.sender.track&&tr.sender.track.kind==='video');
+      if(vTr&&vTr.mid!=null)videoMid=String(vTr.mid);
+    }catch(_){}
+    const tracks=[{mid:audioMid,trackName:'audio_0'}];
+    if(withVideo) tracks.push({mid:videoMid,trackName:'video_0'});
+    const pr=await fetch(`${_profileApi}/api/sfu/publish`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sessionId,sdp:offer.sdp,tracks}),signal:AbortSignal.timeout(8000)});
+    if(!pr.ok)throw new Error('publish status '+pr.status+' '+(await pr.text()));
+    ({sdp:answerSdp}=await pr.json());
+  }catch(e){
+    try{pc.close();}catch(_){}G.sfuPC=null;G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;
+    return toast('Voice server rejected connection — try again.','err');
+  }
+  await pc.setRemoteDescription({type:'answer',sdp:answerSdp});
+  // Incoming tracks from SFU
+  pc.ontrack=e=>{
+    const mid=e.transceiver&&e.transceiver.mid;
+    const pub=mid!=null?G.sfuTracksMap[String(mid)]:null;
+    if(!pub){console.warn('[sable] SFU ontrack: unknown mid',mid,'map:',JSON.stringify(G.sfuTracksMap));return;}
+    const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
+    if(!G.vpeers[pub])G.vpeers[pub]={connState:'connected'};
+    if(e.track.kind==='video'){
+      if(G.sfuParticipants[pub])G.sfuParticipants[pub].hasVideo=true;
+      G.vpeers[pub].stream=stream;G.vpeers[pub].hasVideo=true;
+      if(G.voice&&G.voice.isDMCall){
+        const rv=document.getElementById('vcall-remote-vid');
+        if(rv){rv.srcObject=stream;rv.style.display='block';document.getElementById('vcall-no-vid').style.display='none';}
+        const sl=document.getElementById('vcall-state');if(sl)sl.textContent='● Connected';
+      }
+    }else{
+      playAu(pub,stream);
+    }
+    renderVUI();
+  };
+  pc.onconnectionstatechange=()=>{
+    console.log('[sable] SFU PC state:',pc.connectionState);
+    if(pc.connectionState==='connected')toast('🎙️ Voice connected','ok',2000);
+    else if(pc.connectionState==='failed')toast('⚠️ Voice connection failed — try leaving and rejoining','err');
+  };
+  // Set voice state and show UI
+  G.sfuRoom=callRoom;G.voice={sid:'dm',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`,isSFU:true,isDMCall:true};
+  G.sfuParticipants={};
   if(withVideo){
-    _showVcallOverlay(peer, true);
+    _showVcallOverlay(peer, isCaller);
+    const lv=document.getElementById('vcall-local-vid');
+    if(lv){lv.srcObject=G.lstream;lv.style.display='block';}
   }else{
     document.getElementById('chat').style.display='none';
     document.getElementById('voice').style.display='flex';document.getElementById('voice').classList.add('on');
     document.getElementById('vchname').textContent=G.voice.chName;renderVUI();
   }
-  // Send ring notification to callee via Gun knock + Worker KV (include callId and callType)
-  G.gun.get('sable-knock').get(`${peer.alias}__${G.user.alias}`).put(JSON.stringify({
-    type:'ring',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,
-    epub:G.user.pair.epub,cid,callId:_callId,callType:G.callType,ts:Date.now()
-  }));
-  if(_profileApi&&!G.kvDisabled){
-    ringLog('call:ring-send',{to:peer.pub,callId:_callId,callType:G.callType,via:'worker'});
-    sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
-      data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
-  }
-  G.gun.get('sable-voice').get('sable-calls').get(callRoom).get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,joined:Date.now(),active:true});
-  // Gun presence handler (fast-path when relay works)
-  G.gun.get('sable-voice').get('sable-calls').get(callRoom).map().on(async(p,pPub)=>{
-    if(!p||pPub===G.user.pub){
-      if(!p&&pPub&&G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
-      return;
-    }
-    if(p.active){
-      if(!G.vpeers[pPub]){
-        const amInitiator=G.user.pub<pPub;
-        await mkConn(pPub,'sable-calls',callRoom,amInitiator);renderVUI();
-      }
-    }else{
-      if(G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
-    }
-  });
-  // Deterministic initiator — create the peer connection immediately so
-  // the offer is available even if presence/ready signals are delayed.
-  const amInitiator=G.user.pub<peer.pub;
-  await mkConn(peer.pub,'sable-calls',callRoom,amInitiator);
-  lsnSigs('sable-calls',callRoom);
-  // Send 'ready' via Worker KV — reliable fallback when Gun relay fails cross-browser.
-  if(_profileApi&&!G.kvDisabled){
-    sigSend({room:'sable-calls__'+callRoom,to:peer.pub,from:G.user.pub,type:'ready',data:'1'});
-  }
-  toast(`${withVideo?'📹':'📞'} Calling ${peer.displayName||peer.alias}…`);
+  _sfuGunAttach(false);
+  toast(`${withVideo?'📹':'📞'} Connected to call with ${peer.displayName||peer.alias}`);
 }
 
 // ── SETTINGS ─────────────────────────────────────────────
