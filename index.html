@@ -131,12 +131,6 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .rx.on{background:rgba(114,137,218,.25);border-color:rgba(114,137,218,.6)}
 .rx-add{opacity:.6}
 .rx-add:hover{opacity:1}
-.mact{position:absolute;right:14px;top:10px;display:none;gap:6px;z-index:2}
-.mg:hover .mact{display:flex}
-.mact .abtn{width:28px;height:28px;border-radius:6px}
-@media (hover:none){
-  .mg:hover .mact{display:none}
-}
 .rx-pop{position:fixed;z-index:9999;background:#202225;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
 .rx-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .rx-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 6px;cursor:pointer;color:#fff;font-size:16px}
@@ -147,7 +141,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .mwelcome{padding:16px 16px 8px;border-top:1px solid rgba(255,255,255,.05);margin-top:auto}
 .mwelcome h3{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
 .mwelcome p{color:var(--t2);font-size:14px}
-.mg{padding:2px 16px;position:relative}.mg:hover{background:rgba(0,0,0,.1)}
+.mg{padding:2px 16px}.mg:hover{background:rgba(0,0,0,.1)}
 .mav-row{display:flex;gap:16px;padding-top:16px}
 .mav{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
 .mb{flex:1;min-width:0}
@@ -255,39 +249,6 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .empty h3{font-size:18px;font-weight:700;color:var(--t2)}
 .enc-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(67,181,129,.15);color:var(--green);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:700}
 .tbar{padding:0 16px 8px;font-size:12px;color:var(--t3);min-height:20px}
-#mob-nav-btn{display:none}
-#mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:3500}
-
-/* â”€â”€ MOBILE / SMALL SCREENS â”€â”€ */
-@media (max-width: 900px){
-  #mob-nav-btn{display:flex}
-  #mbrs{display:none}
-  #srv-list{width:56px;position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .2s ease;z-index:4000}
-  #ch-panel{width:200px;position:fixed;left:56px;top:0;bottom:0;transform:translateX(-110%);transition:transform .2s ease;z-index:3990}
-  body.mobile-nav-open #srv-list{transform:translateX(0)}
-  body.mobile-nav-open #ch-panel{transform:translateX(0)}
-  body.mobile-nav-open #mobile-backdrop{display:block}
-  #main{flex:1;width:100%}
-  #chat-hdr{padding:0 10px}
-  #msgs{padding:12px 0}
-  .mav{width:32px;height:32px}
-  .mav-row{gap:12px}
-  .mwelcome h3{font-size:18px}
-  .mwelcome p{font-size:13px}
-  .iarea{padding:0 12px 12px}
-  #minput{font-size:14px}
-}
-@media (max-width: 600px){
-  #srv-list{width:52px}
-  #ch-panel{width:78vw}
-  #chat-hdr h2{font-size:14px}
-  .hacts .ibt{width:26px;height:26px}
-  #chat-hdr svg{width:16px;height:16px}
-  .sicon{width:42px;height:42px}
-  .ditem{margin:1px 6px}
-  .citem{margin:0 6px}
-  .vgrid{padding:16px}
-}
 
 /* ── Friends panel ── */
 .fpanel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--bg3)}
@@ -396,7 +357,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
     <div class="setup-choice">
       <button class="setup-opt" onclick="pickFile(true);dismissSetupModal()">
         <h4>📄 Save to a file on your disk</h4>
-        <p>Link an existing .json file or create a new one. This keeps a real file you can back up or move to other computers.</p>
+        <p>Creates a real .json file you can see, back up, and move to other computers. Recommended.</p>
       </button>
       <button class="setup-opt" onclick="dismissSetupModal()">
         <h4>🌐 Browser storage only</h4>
@@ -450,9 +411,6 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
   <div id="main">
     <div id="chat" style="display:flex;flex-direction:column;flex:1;min-width:0">
       <div id="chat-hdr">
-        <button class="ibt" id="mob-nav-btn" onclick="toggleMobileNav()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
-        </button>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
         <h2 id="chat-title">Select a channel</h2>
         <div class="hacts">
@@ -469,7 +427,6 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
           </button>
         </div>
       </div>
-      <div id="mobile-backdrop" onclick="toggleMobileNav(false)"></div>
       <div id="msgs">
         <div class="empty">
           <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" style="opacity:.25"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
@@ -587,7 +544,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
         </div>
       </div>
       <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">
-        <button class="btn btn-green btn-sm" id="lnk-btn" onclick="pickFile(false)">📄 Link or Open File</button>
+        <button class="btn btn-green btn-sm" id="lnk-btn" onclick="pickFile(false)">📄 Link File on Disk</button>
         <button class="btn btn-ghost btn-sm" id="ulnk-btn" onclick="unlinkFile()" style="display:none">Unlink</button>
         <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇ Export Backup</button>
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp').click()">⬆ Import Backup</button>
@@ -941,10 +898,6 @@ const G={
   sfuParticipants:{}, sfuSubscribed:new Map(), sfuTracksMap:{},
   sfuVideo:false, sfuVideoStream:null, sfuVideoSender:null, sfuVideoMid:null, // SFU camera state
   _sfuPollT:null, _sfuHeartbeatT:null,
-  dmSfuPC:null, dmSfuSession:null, dmSfuRoom:null,
-  dmSfuParticipants:{}, dmSfuSubscribed:new Map(), dmSfuTracksMap:{},
-  dmSfuVideo:false, dmSfuVideoStream:null, dmSfuVideoSender:null, dmSfuVideoMid:null,
-  _dmSfuPollT:null, _dmSfuHeartbeatT:null,
   relayConnected:false,
   seen:new Set(),
   subbedDMs:new Set(), // tracks which pPubs already have a subDM() listener
@@ -953,9 +906,6 @@ const G={
   dmWorkerFetchers:{}, // direct fetch functions per pPub for immediate on-demand fetch
   dmLastFetch:{},      // last-fetched timestamps per cid for Worker KV incremental fetch
   dmUnread:{},         // unread message counts per pPub for badge display
-  chWorkerPolls:{},    // setInterval handles for Worker KV polling per channel
-  chWorkerFetchers:{}, // direct fetch functions per channel for immediate fetch
-  chLastFetch:{},      // last-fetched timestamps per channel cid
   pendingOut:{},       // friend requests we sent, awaiting acceptance
   pendingIn:{},        // incoming friend requests awaiting our decision
   _dmPollT:null,       // interval for periodic scan of active DM
@@ -1011,54 +961,6 @@ async function loadFriendsRemote(){
       changed=true;
     }
     if(changed)renderFriends();
-  }catch(e){}
-}
-async function saveServersRemote(){
-  if(!_profileApi||!G.user||!G.user.pair)return;
-  try{
-    const [servers,channels]=await Promise.all([DB.all('servers'),DB.all('channels')]);
-    const enc=await SEA.encrypt(JSON.stringify({servers,channels}),G.user.pair);
-    await fetch(`${_profileApi}/api/servers`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({pub:G.user.pub,enc})});
-  }catch(e){}
-}
-async function loadServersRemote(){
-  if(!_profileApi||!G.user)return;
-  try{
-    const r=await fetch(`${_profileApi}/api/servers/${encodeURIComponent(G.user.pub)}`);
-    if(!r.ok)return;
-    const d=await r.json();
-    if(!d||!d.enc)return;
-    const dec=await SEA.decrypt(d.enc,G.user.pair);
-    const payload=(dec&&dec.servers)?dec:{servers:[],channels:[]};
-    const servers=Array.isArray(payload.servers)?payload.servers:[];
-    const channels=Array.isArray(payload.channels)?payload.channels:[];
-    let changed=false;
-    const newSrvIds=[];
-    for(const s of servers){
-      if(!s||!s.id)continue;
-      if(!G.srvs[s.id]){
-        G.srvs[s.id]={...s,channels:{},members:{}};
-        try{await DB.put('servers',s);}catch(e){}
-        newSrvIds.push(s.id);
-        changed=true;
-      }
-    }
-    for(const c of channels){
-      if(!c||!c.id||!c.serverId)continue;
-      if(!G.srvs[c.serverId])continue;
-      if(!G.srvs[c.serverId].channels)G.srvs[c.serverId].channels={};
-      if(!G.srvs[c.serverId].channels[c.id]){
-        G.srvs[c.serverId].channels[c.id]=c;
-        try{await DB.put('channels',c);}catch(e){}
-        changed=true;
-      }
-    }
-    if(newSrvIds.length) newSrvIds.forEach(subSrv);
-    if(changed){
-      renderSrvList();
-      if(G.curSrv&&G.curSrv!=='dm')renderChList(G.curSrv);
-    }
   }catch(e){}
 }
 
@@ -1213,14 +1115,13 @@ function logout(){
   if(G._presenceTimers){Object.values(G._presenceTimers).forEach(t=>clearInterval(t));G._presenceTimers={};}
   if(G._dmPollT){clearInterval(G._dmPollT);G._dmPollT=null;}
   if(G.dmWorkerPolls){Object.values(G.dmWorkerPolls).forEach(t=>clearInterval(t));}
-  if(G.chWorkerPolls){Object.values(G.chWorkerPolls).forEach(t=>clearInterval(t));}
   leaveVoice();try{G.gu.leave();}catch(e){}
   setPresence(false);
   try{sessionStorage.removeItem('sable-session');}catch(e){}
   if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;}
   if(G._ringPollT){clearInterval(G._ringPollT);G._ringPollT=null;}
   declineCall(); // dismiss any incoming call overlay and stop ringing
-  Object.assign(G,{user:null,curSrv:'dm',curCh:null,curChT:null,curDmP:null,srvs:{},dms:{},friends:{},presence:{},voice:null,vpeers:{},lstream:null,seen:new Set(),subbedDMs:new Set(),dmScans:{},dmWorkerPolls:{},dmWorkerFetchers:{},dmLastFetch:{},dmUnread:{},chWorkerPolls:{},chWorkerFetchers:{},chLastFetch:{},pendingOut:{},pendingIn:{},_presencePollCount:0,_sigPollT:null,_ringPollT:null,_ringSince:0,_ringDismissT:null,sfuPC:null,sfuSession:null,sfuRoom:null,sfuParticipants:{},sfuSubscribed:new Map(),sfuTracksMap:{},sfuVideo:false,sfuVideoStream:null,sfuVideoSender:null,sfuVideoMid:null,_sfuPollT:null,_sfuHeartbeatT:null,dmSfuPC:null,dmSfuSession:null,dmSfuRoom:null,dmSfuParticipants:{},dmSfuSubscribed:new Map(),dmSfuTracksMap:{},dmSfuVideo:false,dmSfuVideoStream:null,dmSfuVideoSender:null,dmSfuVideoMid:null,_dmSfuPollT:null,_dmSfuHeartbeatT:null});
+  Object.assign(G,{user:null,curSrv:'dm',curCh:null,curChT:null,curDmP:null,srvs:{},dms:{},friends:{},presence:{},voice:null,vpeers:{},lstream:null,seen:new Set(),subbedDMs:new Set(),dmScans:{},dmWorkerPolls:{},dmWorkerFetchers:{},dmLastFetch:{},dmUnread:{},pendingOut:{},pendingIn:{},_presencePollCount:0,_sigPollT:null,_ringPollT:null,_ringSince:0,_ringDismissT:null});
   document.getElementById('app').classList.remove('on');document.getElementById('app').style.display='none';
   document.getElementById('auth').style.display='flex';
   toast('Signed out.');
@@ -1248,7 +1149,6 @@ async function onLogin(){
   await initFS();
   await loadAll();
   await loadFriendsRemote();
-  await loadServersRemote();
   // Fetch any pending friend requests from Worker API (reliable cross-device delivery)
   if(_profileApi){
     try{
@@ -1268,17 +1168,16 @@ async function onLogin(){
   }
   // Subscribe to knocks — flat composite key "recipientAlias__senderAlias",
   // JSON string value. Three types: friend_request, friend_accept, dm.
-  const _knockSeen=new Map();
+  const _knockSeen=new Set();
   G.gun.get('sable-knock').map().on(async(jsonStr,key)=>{
     if(!jsonStr||typeof jsonStr!=='string')return;
     const sep=key.indexOf('__');if(sep<0)return;
     const recipient=key.slice(0,sep);
     const senderAlias=key.slice(sep+2);
     if(recipient!==G.user.alias)return; // not for us
+    if(_knockSeen.has(key))return; // skip Gun's repeated fires for same knock
+    _knockSeen.add(key);
     let knock;try{knock=JSON.parse(jsonStr);}catch(e){return;}
-    const kts=knock&&knock.ts?knock.ts:jsonStr.length;
-    if(_knockSeen.get(key)===kts)return; // skip repeated fires for same knock payload
-    _knockSeen.set(key,kts);
     if(!knock||!knock.pub||!knock.epub)return;
     if(knock.pub===G.user.pub)return; // ignore self
     const peer={pub:knock.pub,alias:knock.alias||senderAlias,displayName:knock.displayName||knock.alias||senderAlias,epub:knock.epub};
@@ -1357,7 +1256,6 @@ async function loadAll(){
 async function createServer(){
   const name=document.getElementById('csn').value.trim(); if(!name)return toast('Enter a name.','err');
   const id=gid(10),code=gid(6);
-  const defChs=[{id:gid(8),serverId:id,name:'general',type:'text',pos:0},{id:gid(8),serverId:id,name:'announcements',type:'text',pos:1},{id:gid(8),serverId:id,name:'General Voice',type:'voice',pos:2}];
   // Generate a shared encryption key for server messages
   const srvKey=await SEA.secret(G.user.pair.epub,G.user.pair); // server key derived from owner's own pair
   const serverSharedKey=code+'-'+G.user.pub.slice(0,8); // simple but unique server key
@@ -1365,17 +1263,15 @@ async function createServer(){
   await DB.put('servers',srv); G.srvs[id]={...srv,channels:{},members:{}};
   G.gun.get('sable-srvs').get(id).put({id,name,owner:G.user.pub,ownerAlias:G.user.alias,inviteCode:code,serverKey:serverSharedKey,createdAt:Date.now()});
   G.gun.get('sable-invites').get(code).put({serverId:id,serverName:name,serverKey:serverSharedKey});
-  // Backup invite code + server snapshot to Worker KV for reliable cross-browser join
+  // Backup invite code to Worker KV for reliable cross-browser join
   if(_profileApi)fetch(`${_profileApi}/api/server-invite`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code,serverId:id,serverName:name,serverKey:serverSharedKey,ownerPub:G.user.pub,
-      server:{id,name,owner:G.user.pub,ownerAlias:G.user.alias,inviteCode:code,serverKey:serverSharedKey,createdAt:Date.now()},
-      channels:defChs})}).catch(()=>{});
+    body:JSON.stringify({code,serverId:id,serverName:name,serverKey:serverSharedKey,ownerPub:G.user.pub})}).catch(()=>{});
+  const defChs=[{id:gid(8),serverId:id,name:'general',type:'text',pos:0},{id:gid(8),serverId:id,name:'announcements',type:'text',pos:1},{id:gid(8),serverId:id,name:'General Voice',type:'voice',pos:2}];
   for(const c of defChs){ await DB.put('channels',c); G.srvs[id].channels[c.id]=c; G.gun.get('sable-srvs').get(id).get('channels').get(c.id).put(c); }
   G.gun.get('sable-srvs').get(id).get('members').get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName,role:'owner',joinedAt:Date.now()});
   G.gun.get('sable-usrvs').get(G.user.pub).get(id).put({serverId:id,serverName:name,serverKey:serverSharedKey,joinedAt:Date.now()});
   hideM('csm');document.getElementById('csn').value='';
   renderSrvList();goSrv(id);subSrv(id);schedSave();
-  saveServersRemote();
   document.getElementById('invname').textContent=name;document.getElementById('invcode').textContent=code;
   setTimeout(()=>showM('invm'),400);
   toast(`Server "${name}" created!`,'ok');
@@ -1390,46 +1286,19 @@ async function joinServer(){
       if(r.ok)invData=await r.json();
     }catch(e){}
   }
-  async function seedServer(data){
-    if(!data||!data.serverId)return false;
-    const server=data.server||{id:data.serverId,name:data.serverName||'Server',serverKey:data.serverKey||'',inviteCode:code,owner:data.ownerPub||''};
-    if(!G.srvs[server.id]){
-      await DB.put('servers',server);
-      G.srvs[server.id]={...server,channels:{},members:{}};
-    }
-    const chs=Array.isArray(data.channels)?data.channels:[];
-    for(const c of chs){
-      if(!c||!c.id)continue;
-      const ch={...c,serverId:server.id};
-      if(!G.srvs[server.id].channels)G.srvs[server.id].channels={};
-      if(!G.srvs[server.id].channels[ch.id]){
-        G.srvs[server.id].channels[ch.id]=ch;
-        await DB.put('channels',ch);
-      }
-    }
-    renderSrvList();goSrv(server.id);subSrv(server.id);schedSave();saveServersRemote();
-    return true;
-  }
   async function doJoin(data){
     if(!data||!data.serverId)return toast('Invalid invite code.','err');
     const{serverId,serverName,serverKey}=data;
     if(G.srvs[serverId]){hideM('jsm');return goSrv(serverId);}
     G.gun.get('sable-srvs').get(serverId).once(async sd=>{
-      if(!sd){
-        if(await seedServer(data)){
-          hideM('jsm');document.getElementById('jsc').value='';
-          toast(`Joined "${serverName}"!`,'ok');
-          return;
-        }
-        return toast('Server not found. Ask the owner to invite you again.','err');
-      }
+      if(!sd)return toast('Server not found. Ask the owner to invite you again.','err');
       const s={...sd,id:serverId,serverKey:serverKey||sd.serverKey};
       await DB.put('servers',s); G.srvs[serverId]={...s,channels:{},members:{}};
       G.gun.get('sable-srvs').get(serverId).get('channels').map().once(async(c,cid)=>{ if(!c||!c.name)return; const ch={...c,serverId,id:cid}; await DB.put('channels',ch); G.srvs[serverId].channels[cid]=ch; });
       G.gun.get('sable-srvs').get(serverId).get('members').get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName,role:'member',joinedAt:Date.now()});
       G.gun.get('sable-usrvs').get(G.user.pub).get(serverId).put({serverId,serverName,serverKey:serverKey||sd.serverKey,joinedAt:Date.now()});
       hideM('jsm');document.getElementById('jsc').value='';
-      setTimeout(()=>{renderSrvList();goSrv(serverId);subSrv(serverId);schedSave();saveServersRemote();},600);
+      setTimeout(()=>{renderSrvList();goSrv(serverId);subSrv(serverId);schedSave();},600);
       toast(`Joined "${serverName}"!`,'ok');
     });
   }
@@ -1458,7 +1327,6 @@ async function createCh(){
   await DB.put('channels',c); G.srvs[sid].channels[c.id]=c;
   G.gun.get('sable-srvs').get(sid).get('channels').get(c.id).put(c);
   hideM('acm');document.getElementById('chn').value='';renderChList(sid);schedSave();
-  saveServersRemote();
   toast(`#${name} created!`,'ok');
 }
 function leaveSrv(sid){
@@ -1467,7 +1335,7 @@ function leaveSrv(sid){
   DB.del('servers',sid);
   DB.byIdx('channels','serverId',sid).then(chs=>chs.forEach(c=>DB.del('channels',c.id)));
   delete G.srvs[sid]; if(G.curSrv===sid)goDMs();
-  renderSrvList();schedSave();saveServersRemote();toast('Left server.');
+  renderSrvList();schedSave();toast('Left server.');
 }
 
 // ── RENDER SERVER LIST ───────────────────────────────────
@@ -1755,11 +1623,12 @@ async function loadChMsgs(sid,chId){
   renderMsgList(msgs,ch?'#'+esc(ch.name):'Channel','Welcome to this channel!');
   const srv=G.srvs[sid];
   const sKey=srv&&srv.serverKey;
-  const cid=sid+'__'+chId;
-  async function processEnc(enc,msgId){
+  G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
     if(!enc||!msgId||G.seen.has(msgId))return;G.seen.add(msgId);
     let msg=null;
+    // Try to decrypt with server key if available
     if(sKey){try{const d=await SEA.decrypt(enc,sKey);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}}
+    // Fallback: raw JSON (old messages)
     if(!msg){try{msg=typeof enc==='string'?JSON.parse(enc):enc;}catch(e){return;}}
     if(!msg)return;
     if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
@@ -1767,33 +1636,7 @@ async function loadChMsgs(sid,chId){
     const stored={...msg,channelId:chId,id:msgId};
     await DB.put('messages',stored);schedSave();
     if(G.curCh===chId)appendMsg(stored);
-  }
-  G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
-    await processEnc(enc,msgId);
   });
-  // Worker KV fallback for server channels
-  async function workerFetch(since){
-    if(!G.user||!_profileApi)return;
-    try{
-      const url=`${_profileApi}/api/ch-messages/${encodeURIComponent(cid)}`+(since?`?since=${since}`:'');
-      const r=await fetch(url);if(!r.ok)return;
-      const d=await r.json();
-      if(d.messages&&d.messages.length){
-        for(const m of d.messages)await processEnc(m.enc,m.msgId);
-        const maxTs=Math.max(...d.messages.map(m=>m.ts||0));
-        if(maxTs>0)G.chLastFetch[cid]=maxTs;
-      }
-    }catch(e){}
-  }
-  G.chWorkerFetchers[cid]=workerFetch;
-  setTimeout(()=>workerFetch(0),800);
-  if(!G.chWorkerPolls[cid]){
-    G.chWorkerPolls[cid]=setInterval(()=>{
-      if(!G.user||G.curCh!==chId||G.curSrv!==sid)return;
-      const cursor=G.chLastFetch[cid]?Math.max(0,G.chLastFetch[cid]-10000):0;
-      workerFetch(cursor);
-    },15000);
-  }
 }
 function clearChat(){
   G.curCh=null;G.curChT=null;
@@ -1822,31 +1665,17 @@ function renderMsgInto(msg,c){
   el.dataset.mid=msg.id;
   const atts=renderAttachments(msg);
   const rxs=renderReactions(msg);
-  const act=`<div class="mact"><button class="abtn" onclick="openReactPicker(event,'${msg.id}')">😊</button></div>`;
   if(!g){
     el.className='mg mav-row';
     const _av=msg.authorPub&&(G.user&&G.user.pub===msg.authorPub?G.user.avatar:G.avatarCache[msg.authorPub]);
     const _avH=_av?`<img src="${_av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(msg.authorName||'?')}`;
-    el.innerHTML=`<div class="mav" style="background:${cf(msg.authorPub||'')};color:#fff">${_avH}</div>${act}
+    el.innerHTML=`<div class="mav" style="background:${cf(msg.authorPub||'')};color:#fff">${_avH}</div>
       <div class="mb"><div class="mh"><span class="mauthor">${esc(msg.authorName||'Unknown')}</span><span class="mts">${fmtTs(msg.ts)}</span></div>
       <div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div></div>`;
   }else{
-    el.className='mg mcont';el.innerHTML=`${act}<div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div>`;
+    el.className='mg mcont';el.innerHTML=`<div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div>`;
   }
   el.dataset.ts=msg.ts;c.appendChild(el);
-  attachMsgGestures(el,msg.id);
-}
-function attachMsgGestures(el,msgId){
-  let t=null;
-  const clear=()=>{ if(t){clearTimeout(t);t=null;} };
-  el.addEventListener('pointerdown',e=>{
-    if(e.pointerType==='mouse')return;
-    clear();
-    t=setTimeout(()=>{openReactPicker(e,msgId);clear();},450);
-  });
-  el.addEventListener('pointerup',clear);
-  el.addEventListener('pointercancel',clear);
-  el.addEventListener('pointermove',clear);
 }
 function renderAttachments(msg){
   const atts=(msg&&msg.attachments)||[];
@@ -1873,8 +1702,8 @@ function renderReactions(msg){
     const count=Object.keys(v.by).length;
     return `<span class="rx ${on?'on':''}" onclick="toggleReactionKey('${msg.id}','${encodeURIComponent(k)}')">${label} ${count}</span>`;
   }).join('');
-  if(!chips)return '';
-  return `<div class="mrx">${chips}</div>`;
+  const add=`<span class="rx rx-add" onclick="openReactPicker(event,'${msg.id}')">+</span>`;
+  return `<div class="mrx">${chips}${add}</div>`;
 }
 function applyQueuedReactionsToMsg(msg){
   const list=G._rxPending&&G._rxPending[msg.id];
@@ -1919,19 +1748,9 @@ function applyReactionToMsg(msg,rx,notify){
   if(notify)updateMsgReactions(msg);
 }
 function updateMsgReactions(msg){
-  const root=document.querySelector(`[data-mid="${msg.id}"]`);
-  if(!root)return;
-  const html=renderReactions(msg);
-  const el=root.querySelector('.mrx');
-  if(!html){
-    if(el)el.remove();
-    return;
-  }
-  if(el) el.outerHTML=html;
-  else{
-    const mc=root.querySelector('.mc');
-    if(mc) mc.insertAdjacentHTML('beforeend',html);
-  }
+  const el=document.querySelector(`[data-mid="${msg.id}"] .mrx`);
+  if(!el)return;
+  el.outerHTML=renderReactions(msg);
 }
 async function handleIncomingReaction(msg){
   const target=await DB.get('messages',msg.targetId);
@@ -2083,12 +1902,6 @@ async function send(){
     if(sKey){try{payload=await SEA.encrypt(JSON.stringify(msg),sKey);}catch(e){payload=JSON.stringify(msg);}}
     else{payload=JSON.stringify(msg);}
     G.gun.get('sable-msgs').get(G.curSrv).get(G.curCh).get(id).put(payload);
-    if(_profileApi){
-      const cid=G.curSrv+'__'+G.curCh;
-      fetch(`${_profileApi}/api/ch-send`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({cid,msgId:id,enc:payload,ts:msg.ts,senderPub:G.user.pub})
-      }).catch(()=>{});
-    }
   }
 }
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
@@ -2109,27 +1922,13 @@ function renderMbrs(sid){
   }).join('');
 }
 function toggleMbrs(){const s=document.getElementById('mbrs');s.style.display=s.style.display==='none'?'block':'none';}
-function toggleMobileNav(force){
-  const cls='mobile-nav-open';
-  if(force===true) document.body.classList.add(cls);
-  else if(force===false) document.body.classList.remove(cls);
-  else document.body.classList.toggle(cls);
-}
 
 // ── VOICE — Cloudflare Calls SFU for server channels ────
 function _audioConstraints(){
   return {echoCancellation:true,noiseSuppression:true,autoGainControl:true};
 }
-function _voiceRoomId(sid,chId,chName){
-  const base=(chName||chId||'voice').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-  return sid+'__'+(base||chId||'voice');
-}
 async function joinVoice(sid,chId,chName){
   if(G.voice)await leaveVoice();
-  if(G._sfuPollT){clearInterval(G._sfuPollT);G._sfuPollT=null;}
-  if(G._sfuHeartbeatT){clearInterval(G._sfuHeartbeatT);G._sfuHeartbeatT=null;}
-  if(G.sfuPC){try{G.sfuPC.close();}catch(e){}G.sfuPC=null;}
-  G.sfuSubscribed=new Map();G.sfuTracksMap={};
   // Unlock AudioContext during this user gesture
   try{if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();}catch(e){}
   // Microphone
@@ -2162,20 +1961,20 @@ async function joinVoice(sid,chId,chName){
     if(!pr.ok)throw new Error('publish status '+pr.status+' '+(await pr.text()));
     ({sdp:answerSdp}=await pr.json());
   }catch(e){
-    try{pc.close();}catch(_){}G.dmSfuPC=null;G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;
+    try{pc.close();}catch(_){}G.sfuPC=null;G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;
     return toast('Voice server rejected connection — try again.','err');
   }
   await pc.setRemoteDescription({type:'answer',sdp:answerSdp});
   // Incoming tracks from SFU
   pc.ontrack=e=>{
     const mid=e.transceiver&&e.transceiver.mid;
-    const pub=mid!=null?G.dmSfuTracksMap[String(mid)]:null;
-    if(!pub){console.warn('[sable] SFU ontrack: unknown mid',mid,'map:',JSON.stringify(G.dmSfuTracksMap));return;}
+    const pub=mid!=null?G.sfuTracksMap[String(mid)]:null;
+    if(!pub){console.warn('[sable] SFU ontrack: unknown mid',mid,'map:',JSON.stringify(G.sfuTracksMap));return;}
     const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
     if(!G.vpeers[pub])G.vpeers[pub]={connState:'connected'};
     if(e.track.kind==='video'){
       // Video track from SFU peer — store stream for renderVUI to wire up
-      if(G.dmSfuParticipants[pub])G.dmSfuParticipants[pub].hasVideo=true;
+      if(G.sfuParticipants[pub])G.sfuParticipants[pub].hasVideo=true;
       G.vpeers[pub].stream=stream;G.vpeers[pub].hasVideo=true;
     }else{
       playAu(pub,stream);
@@ -2188,7 +1987,7 @@ async function joinVoice(sid,chId,chName){
     else if(pc.connectionState==='failed')toast('⚠️ Voice connection failed — try leaving and rejoining','err');
   };
   // Set voice state and show UI
-  const room=_voiceRoomId(sid,chId,chName);
+  const room=sid+'__'+chId;
   G.sfuRoom=room;G.voice={sid,chId,chName,isSFU:true};G.curCh=chId;G.curChT='voice';
   G.sfuParticipants={};
   document.getElementById('chat').style.display='none';
@@ -2331,177 +2130,9 @@ async function leaveSFU(){
   if(camBtn){camBtn.textContent='📷';camBtn.style.background='var(--bg3)';camBtn.style.color='var(--t1)';}
   document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
   document.getElementById('chat').style.display='flex';
-  if(G.voice&&G.voice.isDMCall){
-    document.getElementById('vcall-overlay').classList.remove('on');
-    const rv=document.getElementById('vcall-remote-vid');if(rv){rv.srcObject=null;rv.style.display='none';}
-    const lv=document.getElementById('vcall-local-vid');if(lv){lv.srcObject=null;lv.style.display='none';}
-    document.getElementById('vcall-no-vid').style.display='flex';
-  }
   if(sid&&sid!=='dm'){const tChs=Object.values(G.srvs[sid]&&G.srvs[sid].channels||{}).filter(c=>c&&c.type==='text');if(tChs.length)selCh(sid,tChs[0].id,'text');}
   if(G.curSrv===sid)renderChList(sid);
   toast('Left voice channel.');
-}
-function _dmSfuSubHas(sessionId, trackName){
-  try{ return !!(G.dmSfuSubscribed&&G.dmSfuSubscribed.get(sessionId)&&G.dmSfuSubscribed.get(sessionId).has(trackName)); }
-  catch(e){ return false; }
-}
-function _dmSfuSubMark(sessionId, trackName){
-  if(!G.dmSfuSubscribed||typeof G.dmSfuSubscribed.get!=='function')G.dmSfuSubscribed=new Map();
-  let set=G.dmSfuSubscribed.get(sessionId);
-  if(!set){ set=new Set(); G.dmSfuSubscribed.set(sessionId,set); }
-  set.add(trackName);
-}
-async function dmSfuPollRoom(){
-  if(!G.voice?.isSFU||!G.voice.isDMCall||!G.dmSfuRoom)return;
-  try{
-    const r=await fetch(`${_profileApi}/api/sfu/room/${encodeURIComponent(G.dmSfuRoom)}`);
-    if(!r.ok)return;
-    const{participants}=await r.json();
-    const sl=document.getElementById('vcall-state');
-    if(sl){
-      const hasPeer=(participants||[]).some(p=>p.pub&&p.pub!==G.user.pub);
-      sl.textContent=hasPeer?'Connecting…':'Calling…';
-    }
-    const seen=new Set();
-    for(const p of participants){
-      if(p.pub===G.user.pub)continue;
-      seen.add(p.pub);
-      G.dmSfuParticipants[p.pub]=p;
-      if(!G.vpeers[p.pub])G.vpeers[p.pub]={connState:'connected'};
-    }
-    for(const pub of Object.keys(G.dmSfuParticipants)){
-      if(!seen.has(pub)){
-        delete G.dmSfuParticipants[pub];
-        delete G.vpeers[pub];
-        const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');
-        document.getElementById(id)?.remove();
-      }
-    }
-    const need=[];
-    for(const p of participants){
-      if(!p||p.pub===G.user.pub)continue;
-      const missing=[];
-      if(!_dmSfuSubHas(p.sessionId,'audio_0'))missing.push('audio_0');
-      if(p.hasVideo&&!_dmSfuSubHas(p.sessionId,'video_0'))missing.push('video_0');
-      if(missing.length)need.push({sessionId:p.sessionId,pub:p.pub,missing});
-    }
-    if(need.length)await dmSfuSubscribePeers(need);
-    renderVUI();
-  }catch(e){console.error('[sable] DM SFU room poll error:',e);}
-}
-async function dmSfuSubscribePeers(peers){
-  if(!G.dmSfuPC||!G.dmSfuSession||!peers.length)return;
-  try{
-    const sessionToPub={};
-    const tracks=[];
-    for(const p of peers){
-      sessionToPub[p.sessionId]=p.pub;
-      for(const tn of (p.missing||[])){
-        tracks.push({sessionId:p.sessionId,trackName:tn});
-      }
-    }
-    if(!tracks.length)return;
-    const r=await fetch(`${_profileApi}/api/sfu/subscribe`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sessionId:G.dmSfuSession,tracks})});
-    if(!r.ok){console.error('[sable] DM SFU subscribe failed:',r.status,await r.text());return;}
-    const d=await r.json();
-    if(d.tracks){
-      for(const t of d.tracks){
-        if(t.mid==null)continue;
-        const pub=sessionToPub[t.sessionId]||null;
-        if(!pub)continue;
-        G.dmSfuTracksMap[String(t.mid)]=pub;
-        if(t.trackName==='video_0')G.dmSfuTracksMap[String(t.mid)+'_video']=pub+'_video';
-        if(t.trackName)_dmSfuSubMark(t.sessionId,t.trackName);
-      }
-    }
-    peers.forEach(p=>(p.missing||[]).forEach(tn=>_dmSfuSubMark(p.sessionId,tn)));
-    if(d.sessionDescription){
-      await G.dmSfuPC.setRemoteDescription({type:d.sessionDescription.type,sdp:d.sessionDescription.sdp});
-      const ans=await G.dmSfuPC.createAnswer();
-      await G.dmSfuPC.setLocalDescription(ans);
-      await fetch(`${_profileApi}/api/sfu/renegotiate`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({sessionId:G.dmSfuSession,sdp:ans.sdp})});
-    }
-  }catch(e){console.error('[sable] DM SFU subscribe error:',e);}
-}
-async function leaveDmSfu(){
-  if(G._dmSfuPollT){clearInterval(G._dmSfuPollT);G._dmSfuPollT=null;}
-  if(G._dmSfuHeartbeatT){clearInterval(G._dmSfuHeartbeatT);G._dmSfuHeartbeatT=null;}
-  const room=G.dmSfuRoom,sessionId=G.dmSfuSession;
-  fetch(`${_profileApi}/api/sfu/room/leave`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({room,pub:G.user.pub})}).catch(()=>{});
-  fetch(`${_profileApi}/api/sfu/close`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({sessionId})}).catch(()=>{});
-  if(G.dmSfuPC){try{G.dmSfuPC.close();}catch(_){}G.dmSfuPC=null;}
-  if(G.lstream){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;}
-  if(G.dmSfuVideoStream){G.dmSfuVideoStream.getTracks().forEach(t=>t.stop());G.dmSfuVideoStream=null;}
-  G.dmSfuVideo=false;G.dmSfuVideoSender=null;G.dmSfuVideoMid=null;
-  if(G._voiceCtx){try{G._voiceCtx.close();}catch(_){}G._voiceCtx=null;}
-  Object.keys(G.dmSfuParticipants).forEach(pub=>{
-    delete G.vpeers[pub];
-    const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');document.getElementById(id)?.remove();
-  });
-  G.dmSfuSession=null;G.dmSfuRoom=null;G.dmSfuParticipants={};G.dmSfuSubscribed=new Map();G.dmSfuTracksMap={};
-  G.voice=null;G.muted=false;G.deafened=false;
-  // Ensure UI resets
-  document.getElementById('vcall-overlay').classList.remove('on');
-  const rv=document.getElementById('vcall-remote-vid');if(rv){rv.srcObject=null;rv.style.display='none';}
-  const lv=document.getElementById('vcall-local-vid');if(lv){lv.srcObject=null;lv.style.display='none';}
-  document.getElementById('vcall-no-vid').style.display='flex';
-  document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
-  document.getElementById('chat').style.display='flex';
-}
-async function toggleDmSfuCamera(){
-  if(!G.voice?.isSFU||!G.voice.isDMCall||!G.dmSfuPC||!G.dmSfuSession)return;
-  if(!G.dmSfuVideo){
-    let vs=null;
-    try{vs=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}});}
-    catch(e){return toast('Camera access denied.','err');}
-    G.dmSfuVideoStream=vs;
-    const vt=vs.getVideoTracks()[0];
-    try{
-      if(G.dmSfuVideoSender&&G.dmSfuVideoMid){
-        try{await G.dmSfuVideoSender.replaceTrack(vt);}catch(_){G.dmSfuVideoSender.replaceTrack&&G.dmSfuVideoSender.replaceTrack(vt);}
-      }else{
-        const sender=G.dmSfuPC.addTrack(vt,vs);
-        const offer=await G.dmSfuPC.createOffer();
-        await G.dmSfuPC.setLocalDescription(offer);
-        let videoMid='1';
-        try{
-          const vTr=G.dmSfuPC.getTransceivers().find(tr=>tr&&tr.sender&&tr.sender.track===vt);
-          if(vTr&&vTr.mid!=null)videoMid=String(vTr.mid);
-        }catch(_){}
-        const r=await fetch(`${_profileApi}/api/sfu/publish`,{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({sessionId:G.dmSfuSession,sdp:offer.sdp,tracks:[{mid:videoMid,trackName:'video_0'}]})});
-        if(!r.ok)throw new Error('publish video status '+r.status);
-        const {sdp}=await r.json();
-        await G.dmSfuPC.setRemoteDescription({type:'answer',sdp});
-        G.dmSfuVideoSender=sender;
-        G.dmSfuVideoMid=videoMid;
-      }
-      G.dmSfuVideo=true;
-      fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:true})}).catch(()=>{});
-    }catch(e){
-      vs.getTracks().forEach(t=>t.stop());G.dmSfuVideoStream=null;
-      toast('Could not enable camera.','err');
-    }
-  }else{
-    if(G.dmSfuVideoStream){G.dmSfuVideoStream.getTracks().forEach(t=>t.stop());G.dmSfuVideoStream=null;}
-    G.dmSfuVideo=false;
-    try{ if(G.dmSfuVideoSender&&G.dmSfuVideoSender.replaceTrack) await G.dmSfuVideoSender.replaceTrack(null); }catch(_){}
-    fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
-  }
-  const b=document.getElementById('vcbtn-cam');
-  if(b){b.textContent=G.dmSfuVideo?'📹':'🚫';b.classList.toggle('on',!G.dmSfuVideo);}
-  const lv=document.getElementById('vcall-local-vid');
-  if(lv){
-    if(G.dmSfuVideo&&G.dmSfuVideoStream){lv.srcObject=G.dmSfuVideoStream;lv.style.display='block';}
-    else{lv.srcObject=null;lv.style.display='none';}
-  }
-  renderVUI();
 }
 // Cache ICE servers for up to 4 minutes (Metered credentials last 5 min)
 let _iceCache={servers:null,exp:0};
@@ -2527,7 +2158,6 @@ async function mkConn(pPub,sid,chId,init){
   if(G.vpeers[pPub])return;
   const iceServers=await _getIceServers();
   const pc=new RTCPeerConnection({iceServers});G.vpeers[pPub]={pc,pendingIce:[]};
-  const vp=G.vpeers[pPub];
   if(G.lstream)G.lstream.getTracks().forEach(t=>pc.addTrack(t,G.lstream));
   pc.ontrack=e=>{
     const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
@@ -2559,8 +2189,6 @@ async function mkConn(pPub,sid,chId,init){
   pc.onconnectionstatechange=()=>{
     if(G.vpeers[pPub])G.vpeers[pPub].connState=pc.connectionState;
     renderVUI();
-    if(vp&&vp._offerRetryT){clearInterval(vp._offerRetryT);vp._offerRetryT=null;}
-    if(vp&&vp._answerRetryT){clearInterval(vp._answerRetryT);vp._answerRetryT=null;}
     const pName=(G.dms[pPub]&&(G.dms[pPub].displayName||G.dms[pPub].alias))||pPub.slice(0,8);
     if(pc.connectionState==='connecting'){
       // Safety net: if still connecting after 15 s, force an ICE restart.
@@ -2588,7 +2216,6 @@ async function mkConn(pPub,sid,chId,init){
     }else if(pc.connectionState==='connected'){
       if(G.vpeers[pPub])clearTimeout(G.vpeers[pPub]._connectT);
       toast(`🔊 Connected to ${pName}`,'ok',3000);
-      const sl=document.getElementById('vcall-state');if(sl)sl.textContent='● Connected';
     }else if(pc.connectionState==='failed'){
       if(G.vpeers[pPub])clearTimeout(G.vpeers[pPub]._connectT);
       if(init){
@@ -2628,21 +2255,10 @@ async function mkConn(pPub,sid,chId,init){
   };
   if(init){
     try{
-      const sendOffer=async(restart)=>{
-        const o=await pc.createOffer(restart?{iceRestart:true}:undefined);
-        await pc.setLocalDescription(o);
-        const offerStr=JSON.stringify(o);
-        G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('offer').put(offerStr);
-        sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'offer',data:offerStr});
-      };
-      await sendOffer(false);
-      let tries=0;
-      if(vp._offerRetryT){clearInterval(vp._offerRetryT);}
-      vp._offerRetryT=setInterval(async()=>{
-        if(!G.vpeers[pPub]||pc.connectionState==='connected'||pc.signalingState!=='have-local-offer'){clearInterval(vp._offerRetryT);vp._offerRetryT=null;return;}
-        if(tries++>=4){clearInterval(vp._offerRetryT);vp._offerRetryT=null;return;}
-        try{await sendOffer(true);}catch(e){}
-      },2000);
+      const o=await pc.createOffer();await pc.setLocalDescription(o);
+      const offerStr=JSON.stringify(o);
+      G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('offer').put(offerStr);
+      sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'offer',data:offerStr});
     }catch(e){
       console.error('[sable] createOffer failed:',e);
       toast('⚠️ Call setup failed (could not create offer) — check console','err');
@@ -2675,20 +2291,6 @@ function lsnSigs(sid,chId){
         const ansStr=JSON.stringify(a);
         G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(ansStr);
         sigSend({room:sid+'__'+chId,to:sp,from:G.user.pub,type:'answer',data:ansStr});
-        if(vp){
-          let tries=0;
-          if(vp._answerRetryT){clearInterval(vp._answerRetryT);}
-          vp._answerRetryT=setInterval(async()=>{
-            if(!G.vpeers[sp]||pc.connectionState==='connected'){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
-            if(tries++>=4){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
-            const ld=pc.localDescription;
-            if(ld&&ld.type==='answer'){
-              const aStr=JSON.stringify(ld);
-              G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(aStr);
-              sigSend({room:sid+'__'+chId,to:sp,from:G.user.pub,type:'answer',data:aStr});
-            }
-          },2000);
-        }
       }catch(e){console.error('[sable] Gun offer handling failed:',e);toast('⚠️ Call setup error (offer) — check console','err');}
     });
     sig.get('answer').once(async as=>{
@@ -2783,20 +2385,6 @@ function lsnSigs(sid,chId){
               const ansStr=JSON.stringify(a);
               G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(ansStr);
               sigSend({room,to:sp,from:G.user.pub,type:'answer',data:ansStr});
-              if(vp){
-                let tries=0;
-                if(vp._answerRetryT){clearInterval(vp._answerRetryT);}
-                vp._answerRetryT=setInterval(async()=>{
-                  if(!G.vpeers[sp]||pc.connectionState==='connected'){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
-                  if(tries++>=4){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
-                  const ld=pc.localDescription;
-                  if(ld&&ld.type==='answer'){
-                    const aStr=JSON.stringify(ld);
-                    G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(aStr);
-                    sigSend({room,to:sp,from:G.user.pub,type:'answer',data:aStr});
-                  }
-                },2000);
-              }
             }catch(e){console.error('[sable] KV offer handling failed:',e);toast('⚠️ Call setup error (offer) — check console','err');}
           } else if(sig.type==='answer'){
             const vp=G.vpeers[sp];const pc=vp&&vp.pc;
@@ -2908,20 +2496,9 @@ async function sigSend(payload){
       let txt='';
       try{txt=await r.text();}catch(_){}
       console.warn('[sable] sig-send HTTP error:',r.status,txt);
-      // Best-effort retry for non-ICE signals (ring/offer/answer/ready)
-      if(payload&&payload.type!=='ice'){
-        setTimeout(()=>fetch(`${_profileApi}/api/sig-send`,{
-          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
-        }).catch(()=>{}),800);
-      }
     }
   }catch(e){
     console.warn('[sable] sig-send network error:',e);
-    if(payload&&payload.type!=='ice'){
-      setTimeout(()=>fetch(`${_profileApi}/api/sig-send`,{
-        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
-      }).catch(()=>{}),800);
-    }
   }
 }
 function rmPeer(pub){
@@ -2937,13 +2514,7 @@ function rmPeer(pub){
 }
 async function leaveVoice(){
   if(!G.voice)return;
-  if(G.voice.isSFU){
-    try{
-      if(G.voice.isDMCall)await leaveDmSfu();
-      else await leaveSFU();
-    }catch(e){console.warn('leaveSFU error',e);}
-    return;
-  }
+  if(G.voice.isSFU)return leaveSFU();
   const{sid,chId}=G.voice;
   G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({active:false,pub:G.user.pub});
   Object.keys(G.vpeers).forEach(rmPeer);
@@ -3006,10 +2577,6 @@ function toggleVcallMute(){
   b.textContent=G.muted?'🔇':'🎤';b.classList.toggle('on',G.muted);
 }
 function toggleVcallCam(){
-  if(isSFU){
-    if(G.voice.isDMCall)return toggleDmSfuCamera();
-    return toggleSfuCamera();
-  }
   if(!G.lstream)return;
   const vt=G.lstream.getVideoTracks();
   if(!vt.length)return;
@@ -3082,21 +2649,15 @@ async function toggleSfuCamera(){
 }
 function renderVUI(){
   const c=document.getElementById('vgrid');
-  const isSFU=!!(G.voice&&G.voice.isSFU);
-  const isDM=!!(G.voice&&G.voice.isSFU&&G.voice.isDMCall);
-  const sfuVideo=isDM?G.dmSfuVideo:G.sfuVideo;
-  const sfuVideoStream=isDM?G.dmSfuVideoStream:G.sfuVideoStream;
-  const sfuParts=isDM?G.dmSfuParticipants:G.sfuParticipants;
-  const sfuTracks=isDM?G.dmSfuTracksMap:G.sfuTracksMap;
   // Self card — show local video preview when camera is on (SFU mode)
   let selfVidHtml='';
-  if(isSFU&&sfuVideo&&sfuVideoStream){
+  if(G.voice&&G.voice.isSFU&&G.sfuVideo&&G.sfuVideoStream){
     selfVidHtml='<video class="vcard-self-vid" id="sfu-self-vid" autoplay muted playsinline></video>';
   }
-  const selfCard=`<div class="vcard${G.muted?' speak':''}${sfuVideo?' has-video':''}" id="vc-self">
+  const selfCard=`<div class="vcard${G.muted?' speak':''}${G.sfuVideo?' has-video':''}" id="vc-self">
     ${selfVidHtml}
     <div class="vavc" style="background:${cf(G.user.pub)};color:#fff">${ini(G.user.displayName||G.user.alias)}</div>
-    <div class="vn">${esc(G.user.displayName||G.user.alias)}<br><small style="color:var(--t3)">(you${G.muted?' · muted':''}${sfuVideo?' · 📹':''})</small></div>
+    <div class="vn">${esc(G.user.displayName||G.user.alias)}<br><small style="color:var(--t3)">(you${G.muted?' · muted':''}${G.sfuVideo?' · 📹':''})</small></div>
   </div>`;
   function peerCard(pub,displayName,alias,stateLabel,stateColor,hasVideo,videoEl){
     const safeId=pub.replace(/[^a-zA-Z0-9]/g,'_');
@@ -3110,19 +2671,19 @@ function renderVUI(){
       <div id="vlevel-${safeId}" style="width:60px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px"><div style="height:100%;background:var(--green);width:0%;transition:width .1s" id="vlevelbar-${safeId}"></div></div>
     </div>`;
   }
-  if(isSFU){
+  if(G.voice&&G.voice.isSFU){
     // SFU mode: participants from G.sfuParticipants
-    c.innerHTML=selfCard+Object.entries(sfuParts||{}).map(([pub,p])=>{
-      const hasVid=!!(p.hasVideo&&sfuTracks&&Object.values(sfuTracks).includes(pub+'_video'));
+    c.innerHTML=selfCard+Object.entries(G.sfuParticipants).map(([pub,p])=>{
+      const hasVid=!!(p.hasVideo&&G.sfuTracksMap&&Object.values(G.sfuTracksMap).includes(pub+'_video'));
       return peerCard(pub,p.displayName,p.alias,'● connected','var(--green)',hasVid,true);
     }).join('');
     // Bind self local video
-    if(sfuVideo&&sfuVideoStream){
+    if(G.sfuVideo&&G.sfuVideoStream){
       const sv=document.getElementById('sfu-self-vid');
-      if(sv&&!sv.srcObject)sv.srcObject=sfuVideoStream;
+      if(sv&&!sv.srcObject)sv.srcObject=G.sfuVideoStream;
     }
     // Bind peer video tiles
-    for(const[pub,p] of Object.entries(sfuParts||{})){
+    for(const[pub,p] of Object.entries(G.sfuParticipants)){
       const safeId=pub.replace(/[^a-zA-Z0-9]/g,'_');
       const vtile=document.getElementById('vtile-'+safeId);
       if(vtile&&G.vpeers[pub]?.stream&&!vtile.srcObject)vtile.srcObject=G.vpeers[pub].stream;
@@ -3131,7 +2692,7 @@ function renderVUI(){
     // P2P mode: participants from G.vpeers
     const stateColor={new:'var(--t3)',connecting:'var(--yellow)',connected:'var(--green)',disconnected:'var(--red)',failed:'var(--red)',closed:'var(--t3)'};
     c.innerHTML=selfCard+Object.entries(G.vpeers).map(([pub,vp])=>{
-      const p=G.dms[pub]||(sfuParts&&sfuParts[pub])||{pub,alias:pub.slice(0,8)};
+      const p=G.dms[pub]||G.sfuParticipants[pub]||{pub,alias:pub.slice(0,8)};
       const st=vp.connState||'connecting';
       const hasAudio=!!vp._audioSrc;
       return peerCard(pub,p.displayName,p.alias,st+(hasAudio?' · 🔊':''),stateColor[st]||'var(--t3)',false,false);
@@ -3232,22 +2793,11 @@ async function acceptCall(){
   // Navigate to their DM and start the call
   await selDM(callerPub);
   // Small delay for DM to load, then start call (pass callId + callType so callee matches caller)
-  setTimeout(()=>startCall(callId, callType==='video', true),400);
+  setTimeout(()=>startCall(callId, callType==='video'),400);
 }
 
-async function startCall(callId, withVideo, isIncoming=false){
-  if(!G.curDmP)return;
-  if(!_profileApi)return toast('Voice server unavailable — check your network.','err');
-  return startSfuDmCall(callId,withVideo,!!isIncoming);
-}
-async function startSfuDmCall(callId, withVideo, isIncoming){
-  const peer=G.curDmP;
-  if(G.voice)await leaveVoice();
-  if(G._dmSfuPollT){clearInterval(G._dmSfuPollT);G._dmSfuPollT=null;}
-  if(G._dmSfuHeartbeatT){clearInterval(G._dmSfuHeartbeatT);G._dmSfuHeartbeatT=null;}
-  if(G.dmSfuPC){try{G.dmSfuPC.close();}catch(e){}G.dmSfuPC=null;}
-  G.dmSfuParticipants={};G.vpeers={};
-  if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;G._sigRoom=null;}
+async function startCall(callId, withVideo){
+  if(!G.curDmP)return;const peer=G.curDmP;
   // Unlock AudioContext during this user gesture so remote audio can play
   try{
     if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -3260,102 +2810,48 @@ async function startSfuDmCall(callId, withVideo, isIncoming){
   catch(e){return toast(withVideo?'Camera/microphone access denied — check browser permissions.':'Microphone access denied.','err');}
   G.callType=withVideo?'video':'audio';
   const cid=dmcid(G.user.pub,peer.pub);
+  // Use a unique callId per session so stale signals from previous calls never pollute this one
   const _callId=callId||Date.now().toString(36);
-  const callRoom=cid;
-  const room='dm__'+cid;
-  if(_profileApi){fetch(`${_profileApi}/api/sig-clear/sable-ring/${encodeURIComponent(G.user.pub)}`,{method:'DELETE'}).catch(()=>{});}
-  G.voice={sid:'sable-calls',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`,isSFU:true,isDMCall:true};
+  const callRoom=cid+'__'+_callId;
+  G.voice={sid:'sable-calls',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`};
   if(withVideo){
-    _showVcallOverlay(peer,!isIncoming);
+    _showVcallOverlay(peer, true);
   }else{
     document.getElementById('chat').style.display='none';
     document.getElementById('voice').style.display='flex';document.getElementById('voice').classList.add('on');
     document.getElementById('vchname').textContent=G.voice.chName;renderVUI();
   }
-  if(!isIncoming){
-    G.gun.get('sable-knock').get(`${peer.alias}__${G.user.alias}`).put(JSON.stringify({
-      type:'ring',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,
-      epub:G.user.pair.epub,cid,callId:_callId,callType:G.callType,ts:Date.now()
-    }));
-    sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
-      data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
-    // Retry ring in 1s in case first send was dropped
-    setTimeout(()=>sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
-      data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})}),1000);
-  }
-
-  // SFU session
-  let sessionId;
-  try{
-    const sr=await fetch(`${_profileApi}/api/sfu/session`,{method:'POST',signal:AbortSignal.timeout(6000)});
-    if(!sr.ok)throw new Error('status '+sr.status);
-    ({sessionId}=await sr.json());
-  }catch(e){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;return toast('Could not connect to voice server — check your internet.','err');}
-  const iceServers=await _getIceServers();
-  const pc=new RTCPeerConnection({iceServers,bundlePolicy:'max-bundle'});
-  G.dmSfuPC=pc;G.dmSfuSession=sessionId;G.dmSfuSubscribed=new Map();G.dmSfuTracksMap={};
-  G.dmSfuVideo=!!withVideo;G.sfuVideo=G.dmSfuVideo;
-  G.dmSfuVideoStream=null;
-  G.lstream.getTracks().forEach(t=>pc.addTrack(t,G.lstream));
-  const offer=await pc.createOffer();await pc.setLocalDescription(offer);
-  let answerSdp;
-  try{
-    let audioMid='0',videoMid='1';
-    try{
-      const trs=pc.getTransceivers();
-      const aTr=trs.find(tr=>tr&&tr.sender&&tr.sender.track&&tr.sender.track.kind==='audio');
-      const vTr=trs.find(tr=>tr&&tr.sender&&tr.sender.track&&tr.sender.track.kind==='video');
-      if(aTr&&aTr.mid!=null)audioMid=String(aTr.mid);
-      if(vTr&&vTr.mid!=null)videoMid=String(vTr.mid);
-    }catch(_){}
-    const tracks=[{mid:audioMid,trackName:'audio_0'}];
-    if(withVideo)tracks.push({mid:videoMid,trackName:'video_0'});
-    const pr=await fetch(`${_profileApi}/api/sfu/publish`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sessionId,sdp:offer.sdp,tracks}),signal:AbortSignal.timeout(8000)});
-    if(!pr.ok)throw new Error('publish status '+pr.status+' '+(await pr.text()));
-    ({sdp:answerSdp}=await pr.json());
-  }catch(e){
-    try{pc.close();}catch(_){}G.sfuPC=null;G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;
-    return toast('Voice server rejected connection — try again.','err');
-  }
-  await pc.setRemoteDescription({type:'answer',sdp:answerSdp});
-  pc.ontrack=e=>{
-    const mid=e.transceiver&&e.transceiver.mid;
-    const pub=mid!=null?G.sfuTracksMap[String(mid)]:null;
-    if(!pub){console.warn('[sable] SFU ontrack: unknown mid',mid,'map:',JSON.stringify(G.sfuTracksMap));return;}
-    const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
-    if(!G.vpeers[pub])G.vpeers[pub]={connState:'connected'};
-    if(e.track.kind==='video'){
-      if(G.sfuParticipants[pub])G.sfuParticipants[pub].hasVideo=true;
-      G.vpeers[pub].stream=stream;G.vpeers[pub].hasVideo=true;
-      if(G.voice&&G.voice.isDMCall){
-        const rv=document.getElementById('vcall-remote-vid');
-        if(rv){rv.srcObject=stream;rv.style.display='block';document.getElementById('vcall-no-vid').style.display='none';}
-        const sl=document.getElementById('vcall-state');if(sl)sl.textContent='● Connected';
+  // Send ring notification to callee via Gun knock + Worker KV (include callId and callType)
+  G.gun.get('sable-knock').get(`${peer.alias}__${G.user.alias}`).put(JSON.stringify({
+    type:'ring',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,
+    epub:G.user.pair.epub,cid,callId:_callId,callType:G.callType,ts:Date.now()
+  }));
+  sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
+    data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
+  G.gun.get('sable-voice').get('sable-calls').get(callRoom).get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,joined:Date.now(),active:true});
+  // Gun presence handler (fast-path when relay works)
+  G.gun.get('sable-voice').get('sable-calls').get(callRoom).map().on(async(p,pPub)=>{
+    if(!p||pPub===G.user.pub){
+      if(!p&&pPub&&G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
+      return;
+    }
+    if(p.active){
+      if(!G.vpeers[pPub]){
+        const amInitiator=G.user.pub<pPub;
+        await mkConn(pPub,'sable-calls',callRoom,amInitiator);renderVUI();
       }
     }else{
-      playAu(pub,stream);
+      if(G.vpeers[pPub]){rmPeer(pPub);renderVUI();}
     }
-    renderVUI();
-  };
-  pc.onconnectionstatechange=()=>{
-    if(pc.connectionState==='connected')toast('🎙️ Voice connected','ok',2000);
-  };
-  // Join KV room for participant discovery
-  G.dmSfuRoom=room;
-  await fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({room,sessionId,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!withVideo})}).catch(()=>{});
-  G._dmSfuPollT=setInterval(dmSfuPollRoom,3000);dmSfuPollRoom();
-  G._dmSfuHeartbeatT=setInterval(async()=>{
-    if(!G.voice?.isSFU||!G.voice.isDMCall)return;
-    const hr=await fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.dmSfuVideo})}).catch(()=>null);
-    if(!hr||!hr.ok){
-      fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.dmSfuVideo})}).catch(()=>{});
-    }
-  },8000);
-  toast(`${withVideo?'📹':'📞'} Connected — SFU call active`,'ok');
+  });
+  // Deterministic initiator — create the peer connection immediately so
+  // the offer is available even if presence/ready signals are delayed.
+  const amInitiator=G.user.pub<peer.pub;
+  await mkConn(peer.pub,'sable-calls',callRoom,amInitiator);
+  lsnSigs('sable-calls',callRoom);
+  // Send 'ready' via Worker KV — reliable fallback when Gun relay fails cross-browser.
+  sigSend({room:'sable-calls__'+callRoom,to:peer.pub,from:G.user.pub,type:'ready',data:'1'});
+  toast(`${withVideo?'📹':'📞'} Calling ${peer.displayName||peer.alias}…`);
 }
 
 // ── SETTINGS ─────────────────────────────────────────────
@@ -3834,13 +3330,6 @@ async function init(){
   })();
   G.gun=Gun({peers:GUN_PEERS,localStorage:false});
   G.gu=G.gun.user();
-  // One-time AudioContext unlock on first user gesture (helps mobile + SFU audio)
-  document.addEventListener('click',async()=>{
-    try{
-      if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
-      if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();
-    }catch(e){}
-  },{once:true});
   // Attach relay status listeners immediately — 'hi' fires as soon as Gun
   // connects, which happens right after Gun({...}) is called. If we wait
   // until onLogin() it is already too late; the event has already fired.
