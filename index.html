@@ -571,6 +571,15 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
     </div>
 
     <div class="ssec">
+      <h4>📞 Call Debug</h4>
+      <p style="font-size:12px;color:var(--t3);margin-bottom:8px">Recent ringing and incoming-call events (for troubleshooting).</p>
+      <pre id="ring-debug" style="background:var(--bg0);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:160px;overflow:auto;font-size:11px;color:var(--t2);white-space:pre-wrap"></pre>
+      <div style="margin-top:8px">
+        <button class="btn btn-ghost btn-sm" onclick="copyRingDebug()">Copy Debug Log</button>
+      </div>
+    </div>
+
+    <div class="ssec">
       <h4>👤 Profile</h4>
       <input type="file" id="av-inp" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)"/>
       <div class="av-area">
@@ -878,7 +887,7 @@ async function importJSON(event){
     for(const s of servers) await DB.put('servers',s);
     for(const d of dms) await DB.put('dms',d);
     for(const c of channels) await DB.put('channels',c);
-    await loadAll(); hideM('stm'); toast(`Imported ${messages.length} messages!`,'ok');
+    await loadAll(); saveServersRemote(); hideM('stm'); toast(`Imported ${messages.length} messages!`,'ok');
   }catch(e){ toast('Import failed: '+e.message,'err'); }
   event.target.value='';
 }
@@ -890,6 +899,7 @@ const G={
   srvs:{}, dms:{}, friends:{}, presence:{}, avatarCache:{},
   voice:null, vpeers:{}, lstream:null, muted:false, deafened:false,
   callType:'audio',  // 'audio'|'video' for current DM call
+  ringDebug:[],
   pendingAttachments:[],
   stickers:[],
   _rxPending:{},
@@ -914,6 +924,9 @@ const G={
   _ringPollT:null,     // interval for Worker KV incoming call ring poll
   _ringSince:0,        // last-seen timestamp for ring poll
   _ringDismissT:null,  // timeout to auto-dismiss incoming call overlay
+  kvDisabled:false,    // true when Cloudflare KV daily put limit is exceeded
+  _sfuGunChain:null,_sfuGunBeatT:null,_sfuGunCleanT:null,_sfuNeedT:null,_sfuNeedQ:null,
+  _dmSfuGunChain:null,_dmSfuGunBeatT:null,_dmSfuGunCleanT:null,_dmSfuNeedT:null,_dmSfuNeedQ:null,
   _voiceCtx:null,      // AudioContext for WebRTC audio (unlocked via user gesture)
 };
 
@@ -962,6 +975,57 @@ async function loadFriendsRemote(){
     }
     if(changed)renderFriends();
   }catch(e){}
+}
+
+async function saveServersRemote(){
+  if(!_profileApi||!G.user||!G.user.pair)return;
+  try{
+    const [srvs,chs]=await Promise.all([DB.all('servers'),DB.all('channels')]);
+    const enc=await SEA.encrypt(JSON.stringify({servers:srvs,channels:chs}),G.user.pair);
+    await fetch(`${_profileApi}/api/servers`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pub:G.user.pub,enc})});
+  }catch(e){}
+}
+let _srvSaveT=null;
+function schedServersRemoteSave(){
+  if(_srvSaveT) clearTimeout(_srvSaveT);
+  _srvSaveT=setTimeout(()=>saveServersRemote(),1200);
+}
+async function loadServersRemote(){
+  if(!_profileApi||!G.user)return false;
+  try{
+    const r=await fetch(`${_profileApi}/api/servers/${encodeURIComponent(G.user.pub)}`);
+    if(!r.ok)return false;
+    const d=await r.json();
+    if(!d||!d.enc)return false;
+    const dec=await SEA.decrypt(d.enc,G.user.pair);
+    if(!dec||!dec.servers)return false;
+    const servers=Array.isArray(dec.servers)?dec.servers:[];
+    const channels=Array.isArray(dec.channels)?dec.channels:[];
+    let changed=false;
+    for(const s of servers){
+      if(!s||!s.id)continue;
+      if(!G.srvs[s.id]){
+        await DB.put('servers',s);
+        G.srvs[s.id]={...s,channels:{},members:{}};
+        changed=true;
+      }
+    }
+    for(const c of channels){
+      if(!c||!c.id||!c.serverId)continue;
+      if(!G.srvs[c.serverId]) continue;
+      if(!G.srvs[c.serverId].channels[c.id]){
+        await DB.put('channels',c);
+        G.srvs[c.serverId].channels[c.id]=c;
+        changed=true;
+      }
+    }
+    if(changed){
+      renderSrvList();
+      for(const sid of Object.keys(G.srvs)) subSrv(sid);
+    }
+    return changed;
+  }catch(e){return false;}
 }
 
 // ── AUTH ─────────────────────────────────────────────────
@@ -1149,8 +1213,9 @@ async function onLogin(){
   await initFS();
   await loadAll();
   await loadFriendsRemote();
+  await loadServersRemote();
   // Fetch any pending friend requests from Worker API (reliable cross-device delivery)
-  if(_profileApi){
+  if(_profileApi&&!G.kvDisabled){
     try{
       const fr=await fetch(`${_profileApi}/api/friend-requests/${G.user.alias}`).then(r=>r.json());
       if(fr.requests){
@@ -1168,28 +1233,35 @@ async function onLogin(){
   }
   // Subscribe to knocks — flat composite key "recipientAlias__senderAlias",
   // JSON string value. Three types: friend_request, friend_accept, dm.
-  const _knockSeen=new Set();
+  const _knockSeen=new Map();
   G.gun.get('sable-knock').map().on(async(jsonStr,key)=>{
     if(!jsonStr||typeof jsonStr!=='string')return;
     const sep=key.indexOf('__');if(sep<0)return;
     const recipient=key.slice(0,sep);
     const senderAlias=key.slice(sep+2);
     if(recipient!==G.user.alias)return; // not for us
-    if(_knockSeen.has(key))return; // skip Gun's repeated fires for same knock
-    _knockSeen.add(key);
     let knock;try{knock=JSON.parse(jsonStr);}catch(e){return;}
     if(!knock||!knock.pub||!knock.epub)return;
     if(knock.pub===G.user.pub)return; // ignore self
+    const ktype=knock.type||'dm';
+    const ksig=key+'::'+ktype;
+    const kts=Number(knock.ts||0)||0;
+    const last=_knockSeen.get(ksig)||0;
+    if(kts&&kts<=last)return; // older or duplicate
+    if(!kts&&last)return; // duplicate without timestamp
+    _knockSeen.set(ksig,kts||Date.now());
     const peer={pub:knock.pub,alias:knock.alias||senderAlias,displayName:knock.displayName||knock.alias||senderAlias,epub:knock.epub};
 
     // Plain DM knock — auto-add as DM contact so they can message us
     if(knock.type==='dm'||!knock.type){
+      ringLog('knock:dm',{from:peer.alias,pub:peer.pub});
       if(G.dms[peer.pub])return;
       G.dms[peer.pub]=peer;await DB.put('dms',peer);
       renderDMList();subDM(peer.pub);schedSave();
     }
     // Incoming call ring — show full-screen popup
     if(knock.type==='ring'&&!G.voice){
+      ringLog('knock:ring',{from:peer.alias,pub:peer.pub,callId:knock.callId,callType:knock.callType});
       showIncomingCall(peer.pub,peer.alias,peer.displayName||peer.alias,peer.epub,knock.cid||'',knock.callId||'',knock.callType||'audio');
     }
   });
@@ -1198,7 +1270,7 @@ async function onLogin(){
   setTimeout(showBannerMaybe,2500);
   startFriendPolling(); // poll Worker API for friend events every 12 s
   // Poll Worker KV for incoming call ring notifications (cross-browser fallback)
-  if(_profileApi){
+  if(_profileApi&&!G.kvDisabled){
     G._ringSince=Date.now()-60000; // look back 60s for missed rings on login
     G._ringPollT=setInterval(async()=>{
       if(!G.user||!_profileApi)return;
@@ -1207,6 +1279,7 @@ async function onLogin(){
         if(!r.ok)return;
         const d=await r.json();
         if(!d.signals||!d.signals.length)return;
+        ringLog('ring-poll:signals',{count:d.signals.length});
         for(const sig of d.signals){
           if(sig.ts>G._ringSince)G._ringSince=sig.ts;
           if(sig.type==='ring'&&!G.voice){
@@ -1215,6 +1288,7 @@ async function onLogin(){
             // Look up epub from known friends/dms if available
             const knownPeer=G.dms[sig.from]||G.friends[sig.from];
             const epub=knownPeer?knownPeer.epub:'';
+            ringLog('ring-poll:ring',{from:callerAlias||sig.from,callId:ringCallId,callType:ringCallType});
             showIncomingCall(sig.from,callerAlias,callerName,epub,cid,ringCallId,ringCallType);
           }
         }
@@ -1272,6 +1346,7 @@ async function createServer(){
   G.gun.get('sable-usrvs').get(G.user.pub).get(id).put({serverId:id,serverName:name,serverKey:serverSharedKey,joinedAt:Date.now()});
   hideM('csm');document.getElementById('csn').value='';
   renderSrvList();goSrv(id);subSrv(id);schedSave();
+  schedServersRemoteSave();
   document.getElementById('invname').textContent=name;document.getElementById('invcode').textContent=code;
   setTimeout(()=>showM('invm'),400);
   toast(`Server "${name}" created!`,'ok');
@@ -1299,6 +1374,7 @@ async function joinServer(){
       G.gun.get('sable-usrvs').get(G.user.pub).get(serverId).put({serverId,serverName,serverKey:serverKey||sd.serverKey,joinedAt:Date.now()});
       hideM('jsm');document.getElementById('jsc').value='';
       setTimeout(()=>{renderSrvList();goSrv(serverId);subSrv(serverId);schedSave();},600);
+      schedServersRemoteSave();
       toast(`Joined "${serverName}"!`,'ok');
     });
   }
@@ -1316,6 +1392,7 @@ function subSrv(sid){
     if(!G.srvs[sid])G.srvs[sid]={channels:{},members:{}};
     G.srvs[sid].channels[cid]=ch; await DB.put('channels',ch);
     if(G.curSrv===sid) renderChList(sid); schedSave();
+    schedServersRemoteSave();
   });
 }
 async function createCh(){
@@ -1326,7 +1403,7 @@ async function createCh(){
   const c={id:gid(8),serverId:sid,name,type,pos:Date.now()};
   await DB.put('channels',c); G.srvs[sid].channels[c.id]=c;
   G.gun.get('sable-srvs').get(sid).get('channels').get(c.id).put(c);
-  hideM('acm');document.getElementById('chn').value='';renderChList(sid);schedSave();
+  hideM('acm');document.getElementById('chn').value='';renderChList(sid);schedSave();schedServersRemoteSave();
   toast(`#${name} created!`,'ok');
 }
 function leaveSrv(sid){
@@ -1335,7 +1412,7 @@ function leaveSrv(sid){
   DB.del('servers',sid);
   DB.byIdx('channels','serverId',sid).then(chs=>chs.forEach(c=>DB.del('channels',c.id)));
   delete G.srvs[sid]; if(G.curSrv===sid)goDMs();
-  renderSrvList();schedSave();toast('Left server.');
+  renderSrvList();schedSave();schedServersRemoteSave();toast('Left server.');
 }
 
 // ── RENDER SERVER LIST ───────────────────────────────────
@@ -1860,6 +1937,13 @@ function readFileAsDataURL(f){
     r.readAsDataURL(f);
   });
 }
+function _markKvLimit(errText){
+  if(G.kvDisabled)return;
+  if(errText&&String(errText).includes('KV put() limit exceeded')){
+    G.kvDisabled=true;
+    toast('Cloudflare KV daily limit reached — falling back to relay-only mode.','warn',6000);
+  }
+}
 function renderAttachmentBar(){
   const t=document.getElementById('tbar');if(!t)return;
   if(!G.pendingAttachments||!G.pendingAttachments.length){t.innerHTML='';t.classList.remove('attach-bar');return;}
@@ -1890,10 +1974,10 @@ async function send(){
     G.gun.get('sable-dms').get(G.curCh).get(id).put(enc);
     setTimeout(()=>G.gun.get('sable-dm-ping').get(G.curCh).put(Date.now()),300);
     // Worker KV — guaranteed delivery (recipient polls every 8s)
-    if(_profileApi){
+    if(_profileApi&&!G.kvDisabled){
       fetch(`${_profileApi}/api/dm-send`,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({cid:G.curCh,msgId:id,enc,ts:msg.ts,senderPub:G.user.pub})
-      }).catch(()=>{});
+      }).then(r=>{if(!r.ok)return r.text().then(_markKvLimit);}).catch(()=>{});
     }
   }else{
     // Server messages: encrypted with server key
@@ -1926,6 +2010,76 @@ function toggleMbrs(){const s=document.getElementById('mbrs');s.style.display=s.
 // ── VOICE — Cloudflare Calls SFU for server channels ────
 function _audioConstraints(){
   return {echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+}
+function _sfuGunRoom(room){ return G.gun.get('sable-sfu').get(room); }
+function _sfuQueueSubscribe(isDM, peerList){
+  const key=isDM?'_dmSfuNeedT':'_sfuNeedT';
+  const qkey=isDM?'_dmSfuNeedQ':'_sfuNeedQ';
+  if(!Array.isArray(peerList)||!peerList.length)return;
+  if(!G[qkey])G[qkey]=[];
+  G[qkey].push(...peerList);
+  if(G[key])return;
+  G[key]=setTimeout(async()=>{
+    const list=G[qkey]||[];G[qkey]=[];G[key]=null;
+    const bySession=new Map();
+    list.forEach(p=>{
+      if(!p||!p.sessionId||!p.pub)return;
+      const prev=bySession.get(p.sessionId);
+      bySession.set(p.sessionId,prev?{...p,missing:[...(prev.missing||[]),...(p.missing||[])]}:p);
+    });
+    const peers=[...bySession.values()];
+    if(!peers.length)return;
+    if(isDM) await dmSfuSubscribePeers(peers);
+    else await sfuSubscribePeers(peers);
+  },200);
+}
+function _sfuGunHeartbeat(isDM){
+  const room=isDM?G.dmSfuRoom:G.sfuRoom;
+  const sessionId=isDM?G.dmSfuSession:G.sfuSession;
+  if(!room||!sessionId||!G.user)return;
+  const hasVideo=!!(isDM?G.dmSfuVideo:G.sfuVideo);
+  _sfuGunRoom(room).get(G.user.pub).put({
+    pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,
+    sessionId,hasVideo,ts:Date.now(),active:true
+  });
+}
+function _sfuGunAttach(isDM){
+  const room=isDM?G.dmSfuRoom:G.sfuRoom;
+  if(!room)return;
+  const chainKey=isDM?'_dmSfuGunChain':'_sfuGunChain';
+  const beatKey=isDM?'_dmSfuGunBeatT':'_sfuGunBeatT';
+  const cleanKey=isDM?'_dmSfuGunCleanT':'_sfuGunCleanT';
+  if(G[chainKey]){try{G[chainKey].off();}catch(e){}}
+  const participants=isDM?G.dmSfuParticipants:G.sfuParticipants;
+  const subHas=isDM?_dmSfuSubHas:_sfuSubHas;
+  G[chainKey]=_sfuGunRoom(room).map().on((p,pub)=>{
+    if(!p||!p.pub||p.active===false){ delete participants[pub]; delete G.vpeers[pub]; return; }
+    if(p.ts && Date.now()-p.ts>35000){ delete participants[pub]; delete G.vpeers[pub]; return; }
+    participants[pub]=p;
+    if(pub!==G.user.pub){
+      if(!G.vpeers[pub])G.vpeers[pub]={connState:'connected'};
+      const missing=[];
+      if(!subHas(p.sessionId,'audio_0'))missing.push('audio_0');
+      if(p.hasVideo&&!subHas(p.sessionId,'video_0'))missing.push('video_0');
+      if(missing.length)_sfuQueueSubscribe(isDM,[{sessionId:p.sessionId,pub:p.pub,missing}]);
+    }
+    renderVUI();
+  });
+  if(G[beatKey])clearInterval(G[beatKey]);
+  G[beatKey]=setInterval(()=>_sfuGunHeartbeat(isDM),8000);
+  _sfuGunHeartbeat(isDM);
+  if(G[cleanKey])clearInterval(G[cleanKey]);
+  G[cleanKey]=setInterval(()=>{
+    const now=Date.now();
+    for(const pub of Object.keys(participants)){
+      const p=participants[pub];
+      if(!p||!p.ts||now-p.ts>35000){
+        delete participants[pub];delete G.vpeers[pub];
+        const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');document.getElementById(id)?.remove();
+      }
+    }
+    renderVUI();
+  },10000);
 }
 async function joinVoice(sid,chId,chName){
   if(G.voice)await leaveVoice();
@@ -1996,22 +2150,7 @@ async function joinVoice(sid,chId,chName){
   // Announce presence in Gun (for voice channel active indicator)
   G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,joined:Date.now(),active:true});
   if(G.curSrv===sid)renderChList(sid);
-  // Join KV room for participant discovery
-  await fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({room,sessionId,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
-  // Poll room for peers every 3 s
-  G._sfuPollT=setInterval(sfuPollRoom,3000);sfuPollRoom();
-  // Heartbeat every 8 s to stay in room
-  G._sfuHeartbeatT=setInterval(async()=>{
-    if(!G.voice?.isSFU)return;
-    const hr=await fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.sfuVideo})}).catch(()=>null);
-    if(!hr||!hr.ok){
-      // Re-join if heartbeat missed (KV expiry race)
-      fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.sfuVideo})}).catch(()=>{});
-    }
-  },8000);
+  _sfuGunAttach(false);
   toast(`Joined ${chName}`,'ok');
 }
 
@@ -2104,12 +2243,14 @@ async function sfuSubscribePeers(peers){
 async function leaveSFU(){
   if(G._sfuPollT){clearInterval(G._sfuPollT);G._sfuPollT=null;}
   if(G._sfuHeartbeatT){clearInterval(G._sfuHeartbeatT);G._sfuHeartbeatT=null;}
+  if(G._sfuGunBeatT){clearInterval(G._sfuGunBeatT);G._sfuGunBeatT=null;}
+  if(G._sfuGunCleanT){clearInterval(G._sfuGunCleanT);G._sfuGunCleanT=null;}
+  if(G._sfuGunChain){try{G._sfuGunChain.off();}catch(e){}G._sfuGunChain=null;}
   const room=G.sfuRoom,sessionId=G.sfuSession,sid=G.voice?.sid,chId=G.voice?.chId;
   // Announce departure in Gun
   if(sid&&chId)G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({active:false,pub:G.user.pub});
-  // KV leave
-  fetch(`${_profileApi}/api/sfu/room/leave`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({room,pub:G.user.pub})}).catch(()=>{});
+  // Mark SFU room leave in Gun
+  if(room) _sfuGunRoom(room).get(G.user.pub).put({active:false,ts:Date.now(),pub:G.user.pub});
   // Close CF session
   fetch(`${_profileApi}/api/sfu/close`,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({sessionId})}).catch(()=>{});
@@ -2329,7 +2470,7 @@ function lsnSigs(sid,chId){
       clearInterval(G._sigPollT);G._sigPollT=null;G._sigRoom=null;
     }
   }
-  if(_profileApi&&!G._sigPollT){
+  if(_profileApi&&!G.kvDisabled&&!G._sigPollT){
     const room=sid+'__'+chId;
     G._sigRoom=room;
     let sigSince=0;
@@ -2454,6 +2595,7 @@ function playAu(pub,stream){
 
 async function sigSend(payload){
   if(!_profileApi)return;
+  if(G.kvDisabled)return;
   // Batch ICE candidates to avoid KV rate limits (429 Too Many Requests).
   if(payload&&payload.type==='ice'){
     if(!G._iceQueue)G._iceQueue=new Map();
@@ -2477,6 +2619,7 @@ async function sigSend(payload){
             if(!r.ok){
               let txt='';try{txt=await r.text();}catch(_){}
               console.warn('[sable] sig-send HTTP error:',r.status,txt);
+              _markKvLimit(txt);
             }
           }catch(e){
             console.warn('[sable] sig-send network error:',e);
@@ -2496,6 +2639,7 @@ async function sigSend(payload){
       let txt='';
       try{txt=await r.text();}catch(_){}
       console.warn('[sable] sig-send HTTP error:',r.status,txt);
+      _markKvLimit(txt);
     }
   }catch(e){
     console.warn('[sable] sig-send network error:',e);
@@ -2622,8 +2766,7 @@ async function toggleSfuCamera(){
       }
       G.sfuVideo=true;
       // Update room roster quickly so peers can subscribe to video_0.
-      fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:true})}).catch(()=>{});
+      _sfuGunHeartbeat(false);
       const btn=document.getElementById('vcam-btn');
       btn.textContent='📹';btn.style.background='var(--accent)';btn.style.color='#fff';
       toast('📹 Camera on','ok',2000);
@@ -2639,8 +2782,7 @@ async function toggleSfuCamera(){
     if(G.sfuVideoStream){G.sfuVideoStream.getTracks().forEach(t=>t.stop());G.sfuVideoStream=null;}
     G.sfuVideo=false;
     try{ if(G.sfuVideoSender&&G.sfuVideoSender.replaceTrack) await G.sfuVideoSender.replaceTrack(null); }catch(_){}
-    fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
+    _sfuGunHeartbeat(false);
     const btn=document.getElementById('vcam-btn');
     btn.textContent='📷';btn.style.background='var(--bg3)';btn.style.color='var(--t1)';
     toast('Camera off','ok',2000);
@@ -2718,6 +2860,24 @@ function _animateVLevels(){
 }
 function exitVoice(){if(!G.voice)return;document.getElementById('voice').style.display='none';document.getElementById('chat').style.display='flex';const tChs=Object.values(G.srvs[G.voice.sid]&&G.srvs[G.voice.sid].channels||{}).filter(c=>c&&c.type==='text');if(tChs.length)selCh(G.voice.sid,tChs[0].id,'text');}
 // ── INCOMING CALL UI ─────────────────────────────────────
+function ringLog(msg,data){
+  try{
+    const ts=new Date().toLocaleTimeString();
+    const line=`[${ts}] ${msg}${data?(' '+JSON.stringify(data)):''}`;
+    if(!G.ringDebug)G.ringDebug=[];
+    G.ringDebug.push(line);
+    if(G.ringDebug.length>60)G.ringDebug=G.ringDebug.slice(-60);
+    const el=document.getElementById('ring-debug');
+    if(el) el.textContent=G.ringDebug.join('\n');
+  }catch(e){}
+  console.log('[sable:ring]',msg,data||'');
+}
+function copyRingDebug(){
+  try{
+    const text=(G.ringDebug||[]).join('\n')||'';
+    if(text) navigator.clipboard.writeText(text).then(()=>toast('Debug log copied.','ok'));
+  }catch(e){}
+}
 let _ringCtx=null,_ringNodes=[],_incomingCallData=null;
 function startRing(){
   try{
@@ -2748,6 +2908,7 @@ function stopRing(){
 function showIncomingCall(callerPub,callerAlias,callerName,callerEpub,cid,callId,callType){
   if(G.voice)return; // already in a call
   callType=callType||'audio';
+  ringLog('incoming-call:show',{from:callerAlias||callerName,pub:callerPub,callId,callType});
   _incomingCallData={callerPub,callerAlias,callerName,callerEpub,cid,callId,callType};
   // Avatar
   const av=document.getElementById('incall-avatar');
@@ -2768,6 +2929,7 @@ function showIncomingCall(callerPub,callerAlias,callerName,callerEpub,cid,callId
 }
 function declineCall(){
   stopRing();
+  ringLog('incoming-call:decline',_incomingCallData||{});
   clearTimeout(G._ringDismissT);
   document.getElementById('incall-overlay').style.display='none';
   _incomingCallData=null;
@@ -2776,6 +2938,7 @@ async function acceptCall(){
   if(!_incomingCallData)return;
   const{callerPub,callerAlias,callerName,callerEpub,cid,callId,callType}=_incomingCallData;
   stopRing();
+  ringLog('incoming-call:accept',_incomingCallData||{});
   clearTimeout(G._ringDismissT);
   document.getElementById('incall-overlay').style.display='none';
   _incomingCallData=null;
@@ -2814,6 +2977,7 @@ async function startCall(callId, withVideo){
   const _callId=callId||Date.now().toString(36);
   const callRoom=cid+'__'+_callId;
   G.voice={sid:'sable-calls',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`};
+  ringLog('call:start',{to:peer.alias||peer.pub,callId:_callId,callType:G.callType});
   if(withVideo){
     _showVcallOverlay(peer, true);
   }else{
@@ -2826,8 +2990,11 @@ async function startCall(callId, withVideo){
     type:'ring',pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,
     epub:G.user.pair.epub,cid,callId:_callId,callType:G.callType,ts:Date.now()
   }));
-  sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
-    data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
+  if(_profileApi&&!G.kvDisabled){
+    ringLog('call:ring-send',{to:peer.pub,callId:_callId,callType:G.callType,via:'worker'});
+    sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
+      data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
+  }
   G.gun.get('sable-voice').get('sable-calls').get(callRoom).get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,joined:Date.now(),active:true});
   // Gun presence handler (fast-path when relay works)
   G.gun.get('sable-voice').get('sable-calls').get(callRoom).map().on(async(p,pPub)=>{
@@ -2850,7 +3017,9 @@ async function startCall(callId, withVideo){
   await mkConn(peer.pub,'sable-calls',callRoom,amInitiator);
   lsnSigs('sable-calls',callRoom);
   // Send 'ready' via Worker KV — reliable fallback when Gun relay fails cross-browser.
-  sigSend({room:'sable-calls__'+callRoom,to:peer.pub,from:G.user.pub,type:'ready',data:'1'});
+  if(_profileApi&&!G.kvDisabled){
+    sigSend({room:'sable-calls__'+callRoom,to:peer.pub,from:G.user.pub,type:'ready',data:'1'});
+  }
   toast(`${withVideo?'📹':'📞'} Calling ${peer.displayName||peer.alias}…`);
 }
 
@@ -2867,6 +3036,8 @@ async function openSettings(){
   const connected=G.relayConnected;
   document.getElementById('relay-status-modal').textContent=connected?'● Connected to relay':'○ No relay connected — check internet or set a custom relay below';
   document.getElementById('relay-status-modal').style.color=connected?'var(--green)':'var(--yellow)';
+  const rd=document.getElementById('ring-debug');
+  if(rd) rd.textContent=(G.ringDebug||[]).join('\n');
   // Avatar preview
   const prev=document.getElementById('av-preview');
   if(prev){
