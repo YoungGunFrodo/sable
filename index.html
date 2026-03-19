@@ -2223,6 +2223,13 @@ async function sfuPollRoom(){
     const r=await fetch(`${_profileApi}/api/sfu/room/${encodeURIComponent(G.sfuRoom)}`);
     if(!r.ok)return;
     const{participants}=await r.json();
+    if(G.voice.isDMCall){
+      const sl=document.getElementById('vcall-state');
+      if(sl){
+        const hasPeer=(participants||[]).some(p=>p.pub&&p.pub!==G.user.pub);
+        sl.textContent=hasPeer?'Connecting…':'Calling…';
+      }
+    }
     // Update participant map
     const seen=new Set();
     for(const p of participants){
@@ -3047,6 +3054,11 @@ async function startCall(callId, withVideo, isIncoming=false){
 }
 async function startSfuDmCall(callId, withVideo, isIncoming){
   const peer=G.curDmP;
+  if(G.voice)await leaveVoice();
+  if(G._sfuPollT){clearInterval(G._sfuPollT);G._sfuPollT=null;}
+  if(G._sfuHeartbeatT){clearInterval(G._sfuHeartbeatT);G._sfuHeartbeatT=null;}
+  if(G.sfuPC){try{G.sfuPC.close();}catch(e){}G.sfuPC=null;}
+  G.sfuParticipants={};G.vpeers={};
   if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;G._sigRoom=null;}
   // Unlock AudioContext during this user gesture so remote audio can play
   try{
@@ -3061,8 +3073,8 @@ async function startSfuDmCall(callId, withVideo, isIncoming){
   G.callType=withVideo?'video':'audio';
   const cid=dmcid(G.user.pub,peer.pub);
   const _callId=callId||Date.now().toString(36);
-  const callRoom=cid+'__'+_callId;
-  const room='dm__'+callRoom;
+  const callRoom=cid;
+  const room='dm__'+cid;
   if(_profileApi){fetch(`${_profileApi}/api/sig-clear/sable-ring/${encodeURIComponent(G.user.pub)}`,{method:'DELETE'}).catch(()=>{});}
   G.voice={sid:'sable-calls',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`,isSFU:true,isDMCall:true};
   if(withVideo){
