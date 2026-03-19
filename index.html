@@ -255,12 +255,19 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .empty h3{font-size:18px;font-weight:700;color:var(--t2)}
 .enc-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(67,181,129,.15);color:var(--green);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:700}
 .tbar{padding:0 16px 8px;font-size:12px;color:var(--t3);min-height:20px}
+#mob-nav-btn{display:none}
+#mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:3500}
 
 /* â”€â”€ MOBILE / SMALL SCREENS â”€â”€ */
 @media (max-width: 900px){
+  #mob-nav-btn{display:flex}
   #mbrs{display:none}
-  #srv-list{width:56px}
-  #ch-panel{width:200px}
+  #srv-list{width:56px;position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .2s ease;z-index:4000}
+  #ch-panel{width:200px;position:fixed;left:56px;top:0;bottom:0;transform:translateX(-110%);transition:transform .2s ease;z-index:3990}
+  body.mobile-nav-open #srv-list{transform:translateX(0)}
+  body.mobile-nav-open #ch-panel{transform:translateX(0)}
+  body.mobile-nav-open #mobile-backdrop{display:block}
+  #main{flex:1;width:100%}
   #chat-hdr{padding:0 10px}
   #msgs{padding:12px 0}
   .mav{width:32px;height:32px}
@@ -440,6 +447,9 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
   <div id="main">
     <div id="chat" style="display:flex;flex-direction:column;flex:1;min-width:0">
       <div id="chat-hdr">
+        <button class="ibt" id="mob-nav-btn" onclick="toggleMobileNav()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
+        </button>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
         <h2 id="chat-title">Select a channel</h2>
         <div class="hacts">
@@ -456,6 +466,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
           </button>
         </div>
       </div>
+      <div id="mobile-backdrop" onclick="toggleMobileNav(false)"></div>
       <div id="msgs">
         <div class="empty">
           <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" style="opacity:.25"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
@@ -1341,9 +1352,11 @@ async function createServer(){
   await DB.put('servers',srv); G.srvs[id]={...srv,channels:{},members:{}};
   G.gun.get('sable-srvs').get(id).put({id,name,owner:G.user.pub,ownerAlias:G.user.alias,inviteCode:code,serverKey:serverSharedKey,createdAt:Date.now()});
   G.gun.get('sable-invites').get(code).put({serverId:id,serverName:name,serverKey:serverSharedKey});
-  // Backup invite code to Worker KV for reliable cross-browser join
+  // Backup invite code + server snapshot to Worker KV for reliable cross-browser join
   if(_profileApi)fetch(`${_profileApi}/api/server-invite`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code,serverId:id,serverName:name,serverKey:serverSharedKey,ownerPub:G.user.pub})}).catch(()=>{});
+    body:JSON.stringify({code,serverId:id,serverName:name,serverKey:serverSharedKey,ownerPub:G.user.pub,
+      server:{id,name,owner:G.user.pub,ownerAlias:G.user.alias,inviteCode:code,serverKey:serverSharedKey,createdAt:Date.now()},
+      channels:defChs})}).catch(()=>{});
   const defChs=[{id:gid(8),serverId:id,name:'general',type:'text',pos:0},{id:gid(8),serverId:id,name:'announcements',type:'text',pos:1},{id:gid(8),serverId:id,name:'General Voice',type:'voice',pos:2}];
   for(const c of defChs){ await DB.put('channels',c); G.srvs[id].channels[c.id]=c; G.gun.get('sable-srvs').get(id).get('channels').get(c.id).put(c); }
   G.gun.get('sable-srvs').get(id).get('members').get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName,role:'owner',joinedAt:Date.now()});
@@ -1365,12 +1378,39 @@ async function joinServer(){
       if(r.ok)invData=await r.json();
     }catch(e){}
   }
+  async function seedServer(data){
+    if(!data||!data.serverId)return false;
+    const server=data.server||{id:data.serverId,name:data.serverName||'Server',serverKey:data.serverKey||'',inviteCode:code,owner:data.ownerPub||''};
+    if(!G.srvs[server.id]){
+      await DB.put('servers',server);
+      G.srvs[server.id]={...server,channels:{},members:{}};
+    }
+    const chs=Array.isArray(data.channels)?data.channels:[];
+    for(const c of chs){
+      if(!c||!c.id)continue;
+      const ch={...c,serverId:server.id};
+      if(!G.srvs[server.id].channels)G.srvs[server.id].channels={};
+      if(!G.srvs[server.id].channels[ch.id]){
+        G.srvs[server.id].channels[ch.id]=ch;
+        await DB.put('channels',ch);
+      }
+    }
+    renderSrvList();goSrv(server.id);subSrv(server.id);schedSave();saveServersRemote();
+    return true;
+  }
   async function doJoin(data){
     if(!data||!data.serverId)return toast('Invalid invite code.','err');
     const{serverId,serverName,serverKey}=data;
     if(G.srvs[serverId]){hideM('jsm');return goSrv(serverId);}
     G.gun.get('sable-srvs').get(serverId).once(async sd=>{
-      if(!sd)return toast('Server not found. Ask the owner to invite you again.','err');
+      if(!sd){
+        if(await seedServer(data)){
+          hideM('jsm');document.getElementById('jsc').value='';
+          toast(`Joined "${serverName}"!`,'ok');
+          return;
+        }
+        return toast('Server not found. Ask the owner to invite you again.','err');
+      }
       const s={...sd,id:serverId,serverKey:serverKey||sd.serverKey};
       await DB.put('servers',s); G.srvs[serverId]={...s,channels:{},members:{}};
       G.gun.get('sable-srvs').get(serverId).get('channels').map().once(async(c,cid)=>{ if(!c||!c.name)return; const ch={...c,serverId,id:cid}; await DB.put('channels',ch); G.srvs[serverId].channels[cid]=ch; });
@@ -1842,9 +1882,19 @@ function applyReactionToMsg(msg,rx,notify){
   if(notify)updateMsgReactions(msg);
 }
 function updateMsgReactions(msg){
-  const el=document.querySelector(`[data-mid="${msg.id}"] .mrx`);
-  if(!el)return;
-  el.outerHTML=renderReactions(msg);
+  const root=document.querySelector(`[data-mid="${msg.id}"]`);
+  if(!root)return;
+  const html=renderReactions(msg);
+  const el=root.querySelector('.mrx');
+  if(!html){
+    if(el)el.remove();
+    return;
+  }
+  if(el) el.outerHTML=html;
+  else{
+    const mc=root.querySelector('.mc');
+    if(mc) mc.insertAdjacentHTML('beforeend',html);
+  }
 }
 async function handleIncomingReaction(msg){
   const target=await DB.get('messages',msg.targetId);
@@ -2016,6 +2066,12 @@ function renderMbrs(sid){
   }).join('');
 }
 function toggleMbrs(){const s=document.getElementById('mbrs');s.style.display=s.style.display==='none'?'block':'none';}
+function toggleMobileNav(force){
+  const cls='mobile-nav-open';
+  if(force===true) document.body.classList.add(cls);
+  else if(force===false) document.body.classList.remove(cls);
+  else document.body.classList.toggle(cls);
+}
 
 // ── VOICE — Cloudflare Calls SFU for server channels ────
 function _audioConstraints(){
