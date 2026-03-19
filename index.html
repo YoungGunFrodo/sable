@@ -279,7 +279,10 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 }
 @media (max-width: 600px){
   #srv-list{width:52px}
-  #ch-panel{width:170px}
+  #ch-panel{width:78vw}
+  #chat-hdr h2{font-size:14px}
+  .hacts .ibt{width:26px;height:26px}
+  #chat-hdr svg{width:16px;height:16px}
   .sicon{width:42px;height:42px}
   .ditem{margin:1px 6px}
   .citem{margin:0 6px}
@@ -1345,6 +1348,7 @@ async function loadAll(){
 async function createServer(){
   const name=document.getElementById('csn').value.trim(); if(!name)return toast('Enter a name.','err');
   const id=gid(10),code=gid(6);
+  const defChs=[{id:gid(8),serverId:id,name:'general',type:'text',pos:0},{id:gid(8),serverId:id,name:'announcements',type:'text',pos:1},{id:gid(8),serverId:id,name:'General Voice',type:'voice',pos:2}];
   // Generate a shared encryption key for server messages
   const srvKey=await SEA.secret(G.user.pair.epub,G.user.pair); // server key derived from owner's own pair
   const serverSharedKey=code+'-'+G.user.pub.slice(0,8); // simple but unique server key
@@ -1357,7 +1361,6 @@ async function createServer(){
     body:JSON.stringify({code,serverId:id,serverName:name,serverKey:serverSharedKey,ownerPub:G.user.pub,
       server:{id,name,owner:G.user.pub,ownerAlias:G.user.alias,inviteCode:code,serverKey:serverSharedKey,createdAt:Date.now()},
       channels:defChs})}).catch(()=>{});
-  const defChs=[{id:gid(8),serverId:id,name:'general',type:'text',pos:0},{id:gid(8),serverId:id,name:'announcements',type:'text',pos:1},{id:gid(8),serverId:id,name:'General Voice',type:'voice',pos:2}];
   for(const c of defChs){ await DB.put('channels',c); G.srvs[id].channels[c.id]=c; G.gun.get('sable-srvs').get(id).get('channels').get(c.id).put(c); }
   G.gun.get('sable-srvs').get(id).get('members').get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName,role:'owner',joinedAt:Date.now()});
   G.gun.get('sable-usrvs').get(G.user.pub).get(id).put({serverId:id,serverName:name,serverKey:serverSharedKey,joinedAt:Date.now()});
@@ -2948,6 +2951,7 @@ async function acceptCall(){
 
 async function startCall(callId, withVideo){
   if(!G.curDmP)return;const peer=G.curDmP;
+  if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;G._sigRoom=null;}
   // Unlock AudioContext during this user gesture so remote audio can play
   try{
     if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
