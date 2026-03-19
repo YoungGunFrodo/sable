@@ -131,6 +131,12 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .rx.on{background:rgba(114,137,218,.25);border-color:rgba(114,137,218,.6)}
 .rx-add{opacity:.6}
 .rx-add:hover{opacity:1}
+.mact{position:absolute;right:14px;top:10px;display:none;gap:6px;z-index:2}
+.mg:hover .mact{display:flex}
+.mact .abtn{width:28px;height:28px;border-radius:6px}
+@media (hover:none){
+  .mg:hover .mact{display:none}
+}
 .rx-pop{position:fixed;z-index:9999;background:#202225;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
 .rx-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .rx-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 6px;cursor:pointer;color:#fff;font-size:16px}
@@ -141,7 +147,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .mwelcome{padding:16px 16px 8px;border-top:1px solid rgba(255,255,255,.05);margin-top:auto}
 .mwelcome h3{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
 .mwelcome p{color:var(--t2);font-size:14px}
-.mg{padding:2px 16px}.mg:hover{background:rgba(0,0,0,.1)}
+.mg{padding:2px 16px;position:relative}.mg:hover{background:rgba(0,0,0,.1)}
 .mav-row{display:flex;gap:16px;padding-top:16px}
 .mav{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
 .mb{flex:1;min-width:0}
@@ -250,6 +256,29 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .enc-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(67,181,129,.15);color:var(--green);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:700}
 .tbar{padding:0 16px 8px;font-size:12px;color:var(--t3);min-height:20px}
 
+/* â”€â”€ MOBILE / SMALL SCREENS â”€â”€ */
+@media (max-width: 900px){
+  #mbrs{display:none}
+  #srv-list{width:56px}
+  #ch-panel{width:200px}
+  #chat-hdr{padding:0 10px}
+  #msgs{padding:12px 0}
+  .mav{width:32px;height:32px}
+  .mav-row{gap:12px}
+  .mwelcome h3{font-size:18px}
+  .mwelcome p{font-size:13px}
+  .iarea{padding:0 12px 12px}
+  #minput{font-size:14px}
+}
+@media (max-width: 600px){
+  #srv-list{width:52px}
+  #ch-panel{width:170px}
+  .sicon{width:42px;height:42px}
+  .ditem{margin:1px 6px}
+  .citem{margin:0 6px}
+  .vgrid{padding:16px}
+}
+
 /* ── Friends panel ── */
 .fpanel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--bg3)}
 .fpanel-hdr h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin:0}
@@ -357,7 +386,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
     <div class="setup-choice">
       <button class="setup-opt" onclick="pickFile(true);dismissSetupModal()">
         <h4>📄 Save to a file on your disk</h4>
-        <p>Creates a real .json file you can see, back up, and move to other computers. Recommended.</p>
+        <p>Link an existing .json file or create a new one. This keeps a real file you can back up or move to other computers.</p>
       </button>
       <button class="setup-opt" onclick="dismissSetupModal()">
         <h4>🌐 Browser storage only</h4>
@@ -544,7 +573,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
         </div>
       </div>
       <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">
-        <button class="btn btn-green btn-sm" id="lnk-btn" onclick="pickFile(false)">📄 Link File on Disk</button>
+        <button class="btn btn-green btn-sm" id="lnk-btn" onclick="pickFile(false)">📄 Link or Open File</button>
         <button class="btn btn-ghost btn-sm" id="ulnk-btn" onclick="unlinkFile()" style="display:none">Unlink</button>
         <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇ Export Backup</button>
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp').click()">⬆ Import Backup</button>
@@ -963,6 +992,54 @@ async function loadFriendsRemote(){
     if(changed)renderFriends();
   }catch(e){}
 }
+async function saveServersRemote(){
+  if(!_profileApi||!G.user||!G.user.pair)return;
+  try{
+    const [servers,channels]=await Promise.all([DB.all('servers'),DB.all('channels')]);
+    const enc=await SEA.encrypt(JSON.stringify({servers,channels}),G.user.pair);
+    await fetch(`${_profileApi}/api/servers`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pub:G.user.pub,enc})});
+  }catch(e){}
+}
+async function loadServersRemote(){
+  if(!_profileApi||!G.user)return;
+  try{
+    const r=await fetch(`${_profileApi}/api/servers/${encodeURIComponent(G.user.pub)}`);
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d||!d.enc)return;
+    const dec=await SEA.decrypt(d.enc,G.user.pair);
+    const payload=(dec&&dec.servers)?dec:{servers:[],channels:[]};
+    const servers=Array.isArray(payload.servers)?payload.servers:[];
+    const channels=Array.isArray(payload.channels)?payload.channels:[];
+    let changed=false;
+    const newSrvIds=[];
+    for(const s of servers){
+      if(!s||!s.id)continue;
+      if(!G.srvs[s.id]){
+        G.srvs[s.id]={...s,channels:{},members:{}};
+        try{await DB.put('servers',s);}catch(e){}
+        newSrvIds.push(s.id);
+        changed=true;
+      }
+    }
+    for(const c of channels){
+      if(!c||!c.id||!c.serverId)continue;
+      if(!G.srvs[c.serverId])continue;
+      if(!G.srvs[c.serverId].channels)G.srvs[c.serverId].channels={};
+      if(!G.srvs[c.serverId].channels[c.id]){
+        G.srvs[c.serverId].channels[c.id]=c;
+        try{await DB.put('channels',c);}catch(e){}
+        changed=true;
+      }
+    }
+    if(newSrvIds.length) newSrvIds.forEach(subSrv);
+    if(changed){
+      renderSrvList();
+      if(G.curSrv&&G.curSrv!=='dm')renderChList(G.curSrv);
+    }
+  }catch(e){}
+}
 
 // ── AUTH ─────────────────────────────────────────────────
 function switchTab(t){
@@ -1149,6 +1226,7 @@ async function onLogin(){
   await initFS();
   await loadAll();
   await loadFriendsRemote();
+  await loadServersRemote();
   // Fetch any pending friend requests from Worker API (reliable cross-device delivery)
   if(_profileApi){
     try{
@@ -1272,6 +1350,7 @@ async function createServer(){
   G.gun.get('sable-usrvs').get(G.user.pub).get(id).put({serverId:id,serverName:name,serverKey:serverSharedKey,joinedAt:Date.now()});
   hideM('csm');document.getElementById('csn').value='';
   renderSrvList();goSrv(id);subSrv(id);schedSave();
+  saveServersRemote();
   document.getElementById('invname').textContent=name;document.getElementById('invcode').textContent=code;
   setTimeout(()=>showM('invm'),400);
   toast(`Server "${name}" created!`,'ok');
@@ -1298,7 +1377,7 @@ async function joinServer(){
       G.gun.get('sable-srvs').get(serverId).get('members').get(G.user.pub).put({pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName,role:'member',joinedAt:Date.now()});
       G.gun.get('sable-usrvs').get(G.user.pub).get(serverId).put({serverId,serverName,serverKey:serverKey||sd.serverKey,joinedAt:Date.now()});
       hideM('jsm');document.getElementById('jsc').value='';
-      setTimeout(()=>{renderSrvList();goSrv(serverId);subSrv(serverId);schedSave();},600);
+      setTimeout(()=>{renderSrvList();goSrv(serverId);subSrv(serverId);schedSave();saveServersRemote();},600);
       toast(`Joined "${serverName}"!`,'ok');
     });
   }
@@ -1327,6 +1406,7 @@ async function createCh(){
   await DB.put('channels',c); G.srvs[sid].channels[c.id]=c;
   G.gun.get('sable-srvs').get(sid).get('channels').get(c.id).put(c);
   hideM('acm');document.getElementById('chn').value='';renderChList(sid);schedSave();
+  saveServersRemote();
   toast(`#${name} created!`,'ok');
 }
 function leaveSrv(sid){
@@ -1335,7 +1415,7 @@ function leaveSrv(sid){
   DB.del('servers',sid);
   DB.byIdx('channels','serverId',sid).then(chs=>chs.forEach(c=>DB.del('channels',c.id)));
   delete G.srvs[sid]; if(G.curSrv===sid)goDMs();
-  renderSrvList();schedSave();toast('Left server.');
+  renderSrvList();schedSave();saveServersRemote();toast('Left server.');
 }
 
 // ── RENDER SERVER LIST ───────────────────────────────────
@@ -1665,17 +1745,31 @@ function renderMsgInto(msg,c){
   el.dataset.mid=msg.id;
   const atts=renderAttachments(msg);
   const rxs=renderReactions(msg);
+  const act=`<div class="mact"><button class="abtn" onclick="openReactPicker(event,'${msg.id}')">😊</button></div>`;
   if(!g){
     el.className='mg mav-row';
     const _av=msg.authorPub&&(G.user&&G.user.pub===msg.authorPub?G.user.avatar:G.avatarCache[msg.authorPub]);
     const _avH=_av?`<img src="${_av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`:`${ini(msg.authorName||'?')}`;
-    el.innerHTML=`<div class="mav" style="background:${cf(msg.authorPub||'')};color:#fff">${_avH}</div>
+    el.innerHTML=`<div class="mav" style="background:${cf(msg.authorPub||'')};color:#fff">${_avH}</div>${act}
       <div class="mb"><div class="mh"><span class="mauthor">${esc(msg.authorName||'Unknown')}</span><span class="mts">${fmtTs(msg.ts)}</span></div>
       <div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div></div>`;
   }else{
-    el.className='mg mcont';el.innerHTML=`<div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div>`;
+    el.className='mg mcont';el.innerHTML=`${act}<div class="mc">${lfy(esc(msg.content||''))}${atts}${rxs}</div>`;
   }
   el.dataset.ts=msg.ts;c.appendChild(el);
+  attachMsgGestures(el,msg.id);
+}
+function attachMsgGestures(el,msgId){
+  let t=null;
+  const clear=()=>{ if(t){clearTimeout(t);t=null;} };
+  el.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse')return;
+    clear();
+    t=setTimeout(()=>{openReactPicker(e,msgId);clear();},450);
+  });
+  el.addEventListener('pointerup',clear);
+  el.addEventListener('pointercancel',clear);
+  el.addEventListener('pointermove',clear);
 }
 function renderAttachments(msg){
   const atts=(msg&&msg.attachments)||[];
@@ -1702,8 +1796,8 @@ function renderReactions(msg){
     const count=Object.keys(v.by).length;
     return `<span class="rx ${on?'on':''}" onclick="toggleReactionKey('${msg.id}','${encodeURIComponent(k)}')">${label} ${count}</span>`;
   }).join('');
-  const add=`<span class="rx rx-add" onclick="openReactPicker(event,'${msg.id}')">+</span>`;
-  return `<div class="mrx">${chips}${add}</div>`;
+  if(!chips)return '';
+  return `<div class="mrx">${chips}</div>`;
 }
 function applyQueuedReactionsToMsg(msg){
   const list=G._rxPending&&G._rxPending[msg.id];
