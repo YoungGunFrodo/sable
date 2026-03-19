@@ -941,6 +941,10 @@ const G={
   sfuParticipants:{}, sfuSubscribed:new Map(), sfuTracksMap:{},
   sfuVideo:false, sfuVideoStream:null, sfuVideoSender:null, sfuVideoMid:null, // SFU camera state
   _sfuPollT:null, _sfuHeartbeatT:null,
+  dmSfuPC:null, dmSfuSession:null, dmSfuRoom:null,
+  dmSfuParticipants:{}, dmSfuSubscribed:new Map(), dmSfuTracksMap:{},
+  dmSfuVideo:false, dmSfuVideoStream:null, dmSfuVideoSender:null, dmSfuVideoMid:null,
+  _dmSfuPollT:null, _dmSfuHeartbeatT:null,
   relayConnected:false,
   seen:new Set(),
   subbedDMs:new Set(), // tracks which pPubs already have a subDM() listener
@@ -1216,7 +1220,7 @@ function logout(){
   if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;}
   if(G._ringPollT){clearInterval(G._ringPollT);G._ringPollT=null;}
   declineCall(); // dismiss any incoming call overlay and stop ringing
-  Object.assign(G,{user:null,curSrv:'dm',curCh:null,curChT:null,curDmP:null,srvs:{},dms:{},friends:{},presence:{},voice:null,vpeers:{},lstream:null,seen:new Set(),subbedDMs:new Set(),dmScans:{},dmWorkerPolls:{},dmWorkerFetchers:{},dmLastFetch:{},dmUnread:{},chWorkerPolls:{},chWorkerFetchers:{},chLastFetch:{},pendingOut:{},pendingIn:{},_presencePollCount:0,_sigPollT:null,_ringPollT:null,_ringSince:0,_ringDismissT:null});
+  Object.assign(G,{user:null,curSrv:'dm',curCh:null,curChT:null,curDmP:null,srvs:{},dms:{},friends:{},presence:{},voice:null,vpeers:{},lstream:null,seen:new Set(),subbedDMs:new Set(),dmScans:{},dmWorkerPolls:{},dmWorkerFetchers:{},dmLastFetch:{},dmUnread:{},chWorkerPolls:{},chWorkerFetchers:{},chLastFetch:{},pendingOut:{},pendingIn:{},_presencePollCount:0,_sigPollT:null,_ringPollT:null,_ringSince:0,_ringDismissT:null,sfuPC:null,sfuSession:null,sfuRoom:null,sfuParticipants:{},sfuSubscribed:new Map(),sfuTracksMap:{},sfuVideo:false,sfuVideoStream:null,sfuVideoSender:null,sfuVideoMid:null,_sfuPollT:null,_sfuHeartbeatT:null,dmSfuPC:null,dmSfuSession:null,dmSfuRoom:null,dmSfuParticipants:{},dmSfuSubscribed:new Map(),dmSfuTracksMap:{},dmSfuVideo:false,dmSfuVideoStream:null,dmSfuVideoSender:null,dmSfuVideoMid:null,_dmSfuPollT:null,_dmSfuHeartbeatT:null});
   document.getElementById('app').classList.remove('on');document.getElementById('app').style.display='none';
   document.getElementById('auth').style.display='flex';
   toast('Signed out.');
@@ -2153,20 +2157,20 @@ async function joinVoice(sid,chId,chName){
     if(!pr.ok)throw new Error('publish status '+pr.status+' '+(await pr.text()));
     ({sdp:answerSdp}=await pr.json());
   }catch(e){
-    try{pc.close();}catch(_){}G.sfuPC=null;G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;
+    try{pc.close();}catch(_){}G.dmSfuPC=null;G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;
     return toast('Voice server rejected connection — try again.','err');
   }
   await pc.setRemoteDescription({type:'answer',sdp:answerSdp});
   // Incoming tracks from SFU
   pc.ontrack=e=>{
     const mid=e.transceiver&&e.transceiver.mid;
-    const pub=mid!=null?G.sfuTracksMap[String(mid)]:null;
-    if(!pub){console.warn('[sable] SFU ontrack: unknown mid',mid,'map:',JSON.stringify(G.sfuTracksMap));return;}
+    const pub=mid!=null?G.dmSfuTracksMap[String(mid)]:null;
+    if(!pub){console.warn('[sable] SFU ontrack: unknown mid',mid,'map:',JSON.stringify(G.dmSfuTracksMap));return;}
     const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
     if(!G.vpeers[pub])G.vpeers[pub]={connState:'connected'};
     if(e.track.kind==='video'){
       // Video track from SFU peer — store stream for renderVUI to wire up
-      if(G.sfuParticipants[pub])G.sfuParticipants[pub].hasVideo=true;
+      if(G.dmSfuParticipants[pub])G.dmSfuParticipants[pub].hasVideo=true;
       G.vpeers[pub].stream=stream;G.vpeers[pub].hasVideo=true;
     }else{
       playAu(pub,stream);
@@ -2223,13 +2227,6 @@ async function sfuPollRoom(){
     const r=await fetch(`${_profileApi}/api/sfu/room/${encodeURIComponent(G.sfuRoom)}`);
     if(!r.ok)return;
     const{participants}=await r.json();
-    if(G.voice.isDMCall){
-      const sl=document.getElementById('vcall-state');
-      if(sl){
-        const hasPeer=(participants||[]).some(p=>p.pub&&p.pub!==G.user.pub);
-        sl.textContent=hasPeer?'Connecting…':'Calling…';
-      }
-    }
     // Update participant map
     const seen=new Set();
     for(const p of participants){
@@ -2338,6 +2335,169 @@ async function leaveSFU(){
   if(sid&&sid!=='dm'){const tChs=Object.values(G.srvs[sid]&&G.srvs[sid].channels||{}).filter(c=>c&&c.type==='text');if(tChs.length)selCh(sid,tChs[0].id,'text');}
   if(G.curSrv===sid)renderChList(sid);
   toast('Left voice channel.');
+}
+function _dmSfuSubHas(sessionId, trackName){
+  try{ return !!(G.dmSfuSubscribed&&G.dmSfuSubscribed.get(sessionId)&&G.dmSfuSubscribed.get(sessionId).has(trackName)); }
+  catch(e){ return false; }
+}
+function _dmSfuSubMark(sessionId, trackName){
+  if(!G.dmSfuSubscribed||typeof G.dmSfuSubscribed.get!=='function')G.dmSfuSubscribed=new Map();
+  let set=G.dmSfuSubscribed.get(sessionId);
+  if(!set){ set=new Set(); G.dmSfuSubscribed.set(sessionId,set); }
+  set.add(trackName);
+}
+async function dmSfuPollRoom(){
+  if(!G.voice?.isSFU||!G.voice.isDMCall||!G.dmSfuRoom)return;
+  try{
+    const r=await fetch(`${_profileApi}/api/sfu/room/${encodeURIComponent(G.dmSfuRoom)}`);
+    if(!r.ok)return;
+    const{participants}=await r.json();
+    const sl=document.getElementById('vcall-state');
+    if(sl){
+      const hasPeer=(participants||[]).some(p=>p.pub&&p.pub!==G.user.pub);
+      sl.textContent=hasPeer?'Connecting…':'Calling…';
+    }
+    const seen=new Set();
+    for(const p of participants){
+      if(p.pub===G.user.pub)continue;
+      seen.add(p.pub);
+      G.dmSfuParticipants[p.pub]=p;
+      if(!G.vpeers[p.pub])G.vpeers[p.pub]={connState:'connected'};
+    }
+    for(const pub of Object.keys(G.dmSfuParticipants)){
+      if(!seen.has(pub)){
+        delete G.dmSfuParticipants[pub];
+        delete G.vpeers[pub];
+        const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');
+        document.getElementById(id)?.remove();
+      }
+    }
+    const need=[];
+    for(const p of participants){
+      if(!p||p.pub===G.user.pub)continue;
+      const missing=[];
+      if(!_dmSfuSubHas(p.sessionId,'audio_0'))missing.push('audio_0');
+      if(p.hasVideo&&!_dmSfuSubHas(p.sessionId,'video_0'))missing.push('video_0');
+      if(missing.length)need.push({sessionId:p.sessionId,pub:p.pub,missing});
+    }
+    if(need.length)await dmSfuSubscribePeers(need);
+    renderVUI();
+  }catch(e){console.error('[sable] DM SFU room poll error:',e);}
+}
+async function dmSfuSubscribePeers(peers){
+  if(!G.dmSfuPC||!G.dmSfuSession||!peers.length)return;
+  try{
+    const sessionToPub={};
+    const tracks=[];
+    for(const p of peers){
+      sessionToPub[p.sessionId]=p.pub;
+      for(const tn of (p.missing||[])){
+        tracks.push({sessionId:p.sessionId,trackName:tn});
+      }
+    }
+    if(!tracks.length)return;
+    const r=await fetch(`${_profileApi}/api/sfu/subscribe`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sessionId:G.dmSfuSession,tracks})});
+    if(!r.ok){console.error('[sable] DM SFU subscribe failed:',r.status,await r.text());return;}
+    const d=await r.json();
+    if(d.tracks){
+      for(const t of d.tracks){
+        if(t.mid==null)continue;
+        const pub=sessionToPub[t.sessionId]||null;
+        if(!pub)continue;
+        G.dmSfuTracksMap[String(t.mid)]=pub;
+        if(t.trackName==='video_0')G.dmSfuTracksMap[String(t.mid)+'_video']=pub+'_video';
+        if(t.trackName)_dmSfuSubMark(t.sessionId,t.trackName);
+      }
+    }
+    peers.forEach(p=>(p.missing||[]).forEach(tn=>_dmSfuSubMark(p.sessionId,tn)));
+    if(d.sessionDescription){
+      await G.dmSfuPC.setRemoteDescription({type:d.sessionDescription.type,sdp:d.sessionDescription.sdp});
+      const ans=await G.dmSfuPC.createAnswer();
+      await G.dmSfuPC.setLocalDescription(ans);
+      await fetch(`${_profileApi}/api/sfu/renegotiate`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({sessionId:G.dmSfuSession,sdp:ans.sdp})});
+    }
+  }catch(e){console.error('[sable] DM SFU subscribe error:',e);}
+}
+async function leaveDmSfu(){
+  if(G._dmSfuPollT){clearInterval(G._dmSfuPollT);G._dmSfuPollT=null;}
+  if(G._dmSfuHeartbeatT){clearInterval(G._dmSfuHeartbeatT);G._dmSfuHeartbeatT=null;}
+  const room=G.dmSfuRoom,sessionId=G.dmSfuSession;
+  fetch(`${_profileApi}/api/sfu/room/leave`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({room,pub:G.user.pub})}).catch(()=>{});
+  fetch(`${_profileApi}/api/sfu/close`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({sessionId})}).catch(()=>{});
+  if(G.dmSfuPC){try{G.dmSfuPC.close();}catch(_){}G.dmSfuPC=null;}
+  if(G.lstream){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;}
+  if(G.dmSfuVideoStream){G.dmSfuVideoStream.getTracks().forEach(t=>t.stop());G.dmSfuVideoStream=null;}
+  G.dmSfuVideo=false;G.dmSfuVideoSender=null;G.dmSfuVideoMid=null;G.sfuVideo=false;G.sfuVideoStream=null;
+  if(G._voiceCtx){try{G._voiceCtx.close();}catch(_){}G._voiceCtx=null;}
+  Object.keys(G.dmSfuParticipants).forEach(pub=>{
+    delete G.vpeers[pub];
+    const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');document.getElementById(id)?.remove();
+  });
+  G.dmSfuSession=null;G.dmSfuRoom=null;G.dmSfuParticipants={};G.dmSfuSubscribed=new Map();G.dmSfuTracksMap={};
+  G.voice=null;G.muted=false;G.deafened=false;
+  // Ensure UI resets
+  document.getElementById('vcall-overlay').classList.remove('on');
+  const rv=document.getElementById('vcall-remote-vid');if(rv){rv.srcObject=null;rv.style.display='none';}
+  const lv=document.getElementById('vcall-local-vid');if(lv){lv.srcObject=null;lv.style.display='none';}
+  document.getElementById('vcall-no-vid').style.display='flex';
+  document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
+  document.getElementById('chat').style.display='flex';
+}
+async function toggleDmSfuCamera(){
+  if(!G.voice?.isSFU||!G.voice.isDMCall||!G.dmSfuPC||!G.dmSfuSession)return;
+  if(!G.dmSfuVideo){
+    let vs=null;
+    try{vs=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}});}
+    catch(e){return toast('Camera access denied.','err');}
+    G.dmSfuVideoStream=vs;
+    const vt=vs.getVideoTracks()[0];
+    try{
+      if(G.dmSfuVideoSender&&G.dmSfuVideoMid){
+        try{await G.dmSfuVideoSender.replaceTrack(vt);}catch(_){G.dmSfuVideoSender.replaceTrack&&G.dmSfuVideoSender.replaceTrack(vt);}
+      }else{
+        const sender=G.dmSfuPC.addTrack(vt,vs);
+        const offer=await G.dmSfuPC.createOffer();
+        await G.dmSfuPC.setLocalDescription(offer);
+        let videoMid='1';
+        try{
+          const vTr=G.dmSfuPC.getTransceivers().find(tr=>tr&&tr.sender&&tr.sender.track===vt);
+          if(vTr&&vTr.mid!=null)videoMid=String(vTr.mid);
+        }catch(_){}
+        const r=await fetch(`${_profileApi}/api/sfu/publish`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({sessionId:G.dmSfuSession,sdp:offer.sdp,tracks:[{mid:videoMid,trackName:'video_0'}]})});
+        if(!r.ok)throw new Error('publish video status '+r.status);
+        const {sdp}=await r.json();
+        await G.dmSfuPC.setRemoteDescription({type:'answer',sdp});
+        G.dmSfuVideoSender=sender;
+        G.dmSfuVideoMid=videoMid;
+      }
+      G.dmSfuVideo=true;
+      fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:true})}).catch(()=>{});
+    }catch(e){
+      vs.getTracks().forEach(t=>t.stop());G.dmSfuVideoStream=null;
+      toast('Could not enable camera.','err');
+    }
+  }else{
+    if(G.dmSfuVideoStream){G.dmSfuVideoStream.getTracks().forEach(t=>t.stop());G.dmSfuVideoStream=null;}
+    G.dmSfuVideo=false;
+    try{ if(G.dmSfuVideoSender&&G.dmSfuVideoSender.replaceTrack) await G.dmSfuVideoSender.replaceTrack(null); }catch(_){}
+    fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
+  }
+  G.sfuVideo=G.dmSfuVideo;G.sfuVideoStream=G.dmSfuVideoStream;
+  const b=document.getElementById('vcbtn-cam');
+  if(b){b.textContent=G.dmSfuVideo?'📹':'🚫';b.classList.toggle('on',!G.dmSfuVideo);}
+  const lv=document.getElementById('vcall-local-vid');
+  if(lv){
+    if(G.dmSfuVideo&&G.dmSfuVideoStream){lv.srcObject=G.dmSfuVideoStream;lv.style.display='block';}
+    else{lv.srcObject=null;lv.style.display='none';}
+  }
+  renderVUI();
 }
 // Cache ICE servers for up to 4 minutes (Metered credentials last 5 min)
 let _iceCache={servers:null,exp:0};
@@ -2774,15 +2934,10 @@ function rmPeer(pub){
 async function leaveVoice(){
   if(!G.voice)return;
   if(G.voice.isSFU){
-    try{await leaveSFU();}catch(e){console.warn('leaveSFU error',e);}
-    // Force UI cleanup so refresh is never required
-    document.getElementById('vcall-overlay').classList.remove('on');
-    const rv=document.getElementById('vcall-remote-vid');if(rv){rv.srcObject=null;rv.style.display='none';}
-    const lv=document.getElementById('vcall-local-vid');if(lv){lv.srcObject=null;lv.style.display='none';}
-    document.getElementById('vcall-no-vid').style.display='flex';
-    document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
-    document.getElementById('chat').style.display='flex';
-    G.voice=null;G.sfuRoom=null;G.sfuSession=null;G.sfuParticipants={};G.vpeers={};
+    try{
+      if(G.voice.isDMCall)await leaveDmSfu();
+      else await leaveSFU();
+    }catch(e){console.warn('leaveSFU error',e);}
     return;
   }
   const{sid,chId}=G.voice;
@@ -2847,7 +3002,10 @@ function toggleVcallMute(){
   b.textContent=G.muted?'🔇':'🎤';b.classList.toggle('on',G.muted);
 }
 function toggleVcallCam(){
-  if(G.voice&&G.voice.isSFU)return toggleSfuCamera();
+  if(isSFU){
+    if(G.voice.isDMCall)return toggleDmSfuCamera();
+    return toggleSfuCamera();
+  }
   if(!G.lstream)return;
   const vt=G.lstream.getVideoTracks();
   if(!vt.length)return;
@@ -2920,12 +3078,18 @@ async function toggleSfuCamera(){
 }
 function renderVUI(){
   const c=document.getElementById('vgrid');
+  const isSFU=!!(G.voice&&G.voice.isSFU);
+  const isDM=!!(G.voice&&G.voice.isSFU&&G.voice.isDMCall);
+  const sfuVideo=isDM?G.dmSfuVideo:G.sfuVideo;
+  const sfuVideoStream=isDM?G.dmSfuVideoStream:G.sfuVideoStream;
+  const sfuParts=isDM?G.dmSfuParticipants:G.sfuParticipants;
+  const sfuTracks=isDM?G.dmSfuTracksMap:G.sfuTracksMap;
   // Self card — show local video preview when camera is on (SFU mode)
   let selfVidHtml='';
-  if(G.voice&&G.voice.isSFU&&G.sfuVideo&&G.sfuVideoStream){
+  if(isSFU&&sfuVideo&&sfuVideoStream){
     selfVidHtml='<video class="vcard-self-vid" id="sfu-self-vid" autoplay muted playsinline></video>';
   }
-  const selfCard=`<div class="vcard${G.muted?' speak':''}${G.sfuVideo?' has-video':''}" id="vc-self">
+  const selfCard=`<div class="vcard${G.muted?' speak':''}${sfuVideo?' has-video':''}" id="vc-self">
     ${selfVidHtml}
     <div class="vavc" style="background:${cf(G.user.pub)};color:#fff">${ini(G.user.displayName||G.user.alias)}</div>
     <div class="vn">${esc(G.user.displayName||G.user.alias)}<br><small style="color:var(--t3)">(you${G.muted?' · muted':''}${G.sfuVideo?' · 📹':''})</small></div>
@@ -2942,19 +3106,19 @@ function renderVUI(){
       <div id="vlevel-${safeId}" style="width:60px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px"><div style="height:100%;background:var(--green);width:0%;transition:width .1s" id="vlevelbar-${safeId}"></div></div>
     </div>`;
   }
-  if(G.voice&&G.voice.isSFU){
+  if(isSFU){
     // SFU mode: participants from G.sfuParticipants
-    c.innerHTML=selfCard+Object.entries(G.sfuParticipants).map(([pub,p])=>{
-      const hasVid=!!(p.hasVideo&&G.sfuTracksMap&&Object.values(G.sfuTracksMap).includes(pub+'_video'));
+    c.innerHTML=selfCard+Object.entries(sfuParts||{}).map(([pub,p])=>{
+      const hasVid=!!(p.hasVideo&&sfuTracks&&Object.values(sfuTracks).includes(pub+'_video'));
       return peerCard(pub,p.displayName,p.alias,'● connected','var(--green)',hasVid,true);
     }).join('');
     // Bind self local video
-    if(G.sfuVideo&&G.sfuVideoStream){
+    if(sfuVideo&&sfuVideoStream){
       const sv=document.getElementById('sfu-self-vid');
-      if(sv&&!sv.srcObject)sv.srcObject=G.sfuVideoStream;
+      if(sv&&!sv.srcObject)sv.srcObject=sfuVideoStream;
     }
     // Bind peer video tiles
-    for(const[pub,p] of Object.entries(G.sfuParticipants)){
+    for(const[pub,p] of Object.entries(sfuParts||{})){
       const safeId=pub.replace(/[^a-zA-Z0-9]/g,'_');
       const vtile=document.getElementById('vtile-'+safeId);
       if(vtile&&G.vpeers[pub]?.stream&&!vtile.srcObject)vtile.srcObject=G.vpeers[pub].stream;
@@ -2963,7 +3127,7 @@ function renderVUI(){
     // P2P mode: participants from G.vpeers
     const stateColor={new:'var(--t3)',connecting:'var(--yellow)',connected:'var(--green)',disconnected:'var(--red)',failed:'var(--red)',closed:'var(--t3)'};
     c.innerHTML=selfCard+Object.entries(G.vpeers).map(([pub,vp])=>{
-      const p=G.dms[pub]||G.sfuParticipants[pub]||{pub,alias:pub.slice(0,8)};
+      const p=G.dms[pub]||(sfuParts&&sfuParts[pub])||{pub,alias:pub.slice(0,8)};
       const st=vp.connState||'connecting';
       const hasAudio=!!vp._audioSrc;
       return peerCard(pub,p.displayName,p.alias,st+(hasAudio?' · 🔊':''),stateColor[st]||'var(--t3)',false,false);
@@ -3077,10 +3241,10 @@ async function startCall(callId, withVideo, isIncoming=false){
 async function startSfuDmCall(callId, withVideo, isIncoming){
   const peer=G.curDmP;
   if(G.voice)await leaveVoice();
-  if(G._sfuPollT){clearInterval(G._sfuPollT);G._sfuPollT=null;}
-  if(G._sfuHeartbeatT){clearInterval(G._sfuHeartbeatT);G._sfuHeartbeatT=null;}
-  if(G.sfuPC){try{G.sfuPC.close();}catch(e){}G.sfuPC=null;}
-  G.sfuParticipants={};G.vpeers={};
+  if(G._dmSfuPollT){clearInterval(G._dmSfuPollT);G._dmSfuPollT=null;}
+  if(G._dmSfuHeartbeatT){clearInterval(G._dmSfuHeartbeatT);G._dmSfuHeartbeatT=null;}
+  if(G.dmSfuPC){try{G.dmSfuPC.close();}catch(e){}G.dmSfuPC=null;}
+  G.dmSfuParticipants={};G.vpeers={};
   if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;G._sigRoom=null;}
   // Unlock AudioContext during this user gesture so remote audio can play
   try{
@@ -3127,8 +3291,9 @@ async function startSfuDmCall(callId, withVideo, isIncoming){
   }catch(e){G.lstream.getTracks().forEach(t=>t.stop());G.lstream=null;return toast('Could not connect to voice server — check your internet.','err');}
   const iceServers=await _getIceServers();
   const pc=new RTCPeerConnection({iceServers,bundlePolicy:'max-bundle'});
-  G.sfuPC=pc;G.sfuSession=sessionId;G.sfuSubscribed=new Map();G.sfuTracksMap={};
-  G.sfuVideo=!!withVideo;
+  G.dmSfuPC=pc;G.dmSfuSession=sessionId;G.dmSfuSubscribed=new Map();G.dmSfuTracksMap={};
+  G.dmSfuVideo=!!withVideo;G.sfuVideo=G.dmSfuVideo;
+  G.dmSfuVideoStream=null;G.sfuVideoStream=null;
   G.lstream.getTracks().forEach(t=>pc.addTrack(t,G.lstream));
   const offer=await pc.createOffer();await pc.setLocalDescription(offer);
   let answerSdp;
@@ -3175,17 +3340,17 @@ async function startSfuDmCall(callId, withVideo, isIncoming){
     if(pc.connectionState==='connected')toast('🎙️ Voice connected','ok',2000);
   };
   // Join KV room for participant discovery
-  G.sfuRoom=room;
+  G.dmSfuRoom=room;
   await fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({room,sessionId,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!withVideo})}).catch(()=>{});
-  G._sfuPollT=setInterval(sfuPollRoom,3000);sfuPollRoom();
-  G._sfuHeartbeatT=setInterval(async()=>{
-    if(!G.voice?.isSFU)return;
+  G._dmSfuPollT=setInterval(dmSfuPollRoom,3000);dmSfuPollRoom();
+  G._dmSfuHeartbeatT=setInterval(async()=>{
+    if(!G.voice?.isSFU||!G.voice.isDMCall)return;
     const hr=await fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.sfuVideo})}).catch(()=>null);
+      body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.dmSfuVideo})}).catch(()=>null);
     if(!hr||!hr.ok){
       fetch(`${_profileApi}/api/sfu/room/join`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({room:G.sfuRoom,sessionId:G.sfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.sfuVideo})}).catch(()=>{});
+        body:JSON.stringify({room:G.dmSfuRoom,sessionId:G.dmSfuSession,pub:G.user.pub,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:!!G.dmSfuVideo})}).catch(()=>{});
     }
   },8000);
   toast(`${withVideo?'📹':'📞'} Connected — SFU call active`,'ok');
