@@ -1213,7 +1213,14 @@ async function onLogin(){
   await initFS();
   await loadAll();
   await loadFriendsRemote();
-  await loadServersRemote();
+  const _srvChanged=await loadServersRemote();
+  // If no remote backup exists but we have local servers, seed the backup now.
+  if(!_srvChanged){
+    try{
+      const localSrvs=await DB.all('servers');
+      if(localSrvs&&localSrvs.length) schedServersRemoteSave();
+    }catch(e){}
+  }
   // Fetch any pending friend requests from Worker API (reliable cross-device delivery)
   if(_profileApi&&!G.kvDisabled){
     try{
@@ -3532,7 +3539,9 @@ async function init(){
   document.getElementById('jsc')?.addEventListener('keydown',e=>{if(e.key==='Enter')joinServer();});
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
-  console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
+console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
+window.SABLE_BUILD='2026-03-19-ring-debug-d1';
+console.log('Sable build:',window.SABLE_BUILD);
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
   try{
     const _sess=sessionStorage.getItem('sable-session');
