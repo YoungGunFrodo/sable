@@ -949,6 +949,9 @@ const G={
   dmWorkerFetchers:{}, // direct fetch functions per pPub for immediate on-demand fetch
   dmLastFetch:{},      // last-fetched timestamps per cid for Worker KV incremental fetch
   dmUnread:{},         // unread message counts per pPub for badge display
+  chWorkerPolls:{},    // setInterval handles for Worker KV polling per channel
+  chWorkerFetchers:{}, // direct fetch functions per channel for immediate fetch
+  chLastFetch:{},      // last-fetched timestamps per channel cid
   pendingOut:{},       // friend requests we sent, awaiting acceptance
   pendingIn:{},        // incoming friend requests awaiting our decision
   _dmPollT:null,       // interval for periodic scan of active DM
@@ -1206,13 +1209,14 @@ function logout(){
   if(G._presenceTimers){Object.values(G._presenceTimers).forEach(t=>clearInterval(t));G._presenceTimers={};}
   if(G._dmPollT){clearInterval(G._dmPollT);G._dmPollT=null;}
   if(G.dmWorkerPolls){Object.values(G.dmWorkerPolls).forEach(t=>clearInterval(t));}
+  if(G.chWorkerPolls){Object.values(G.chWorkerPolls).forEach(t=>clearInterval(t));}
   leaveVoice();try{G.gu.leave();}catch(e){}
   setPresence(false);
   try{sessionStorage.removeItem('sable-session');}catch(e){}
   if(G._sigPollT){clearInterval(G._sigPollT);G._sigPollT=null;}
   if(G._ringPollT){clearInterval(G._ringPollT);G._ringPollT=null;}
   declineCall(); // dismiss any incoming call overlay and stop ringing
-  Object.assign(G,{user:null,curSrv:'dm',curCh:null,curChT:null,curDmP:null,srvs:{},dms:{},friends:{},presence:{},voice:null,vpeers:{},lstream:null,seen:new Set(),subbedDMs:new Set(),dmScans:{},dmWorkerPolls:{},dmWorkerFetchers:{},dmLastFetch:{},dmUnread:{},pendingOut:{},pendingIn:{},_presencePollCount:0,_sigPollT:null,_ringPollT:null,_ringSince:0,_ringDismissT:null});
+  Object.assign(G,{user:null,curSrv:'dm',curCh:null,curChT:null,curDmP:null,srvs:{},dms:{},friends:{},presence:{},voice:null,vpeers:{},lstream:null,seen:new Set(),subbedDMs:new Set(),dmScans:{},dmWorkerPolls:{},dmWorkerFetchers:{},dmLastFetch:{},dmUnread:{},chWorkerPolls:{},chWorkerFetchers:{},chLastFetch:{},pendingOut:{},pendingIn:{},_presencePollCount:0,_sigPollT:null,_ringPollT:null,_ringSince:0,_ringDismissT:null});
   document.getElementById('app').classList.remove('on');document.getElementById('app').style.display='none';
   document.getElementById('auth').style.display='flex';
   toast('Signed out.');
@@ -1746,12 +1750,11 @@ async function loadChMsgs(sid,chId){
   renderMsgList(msgs,ch?'#'+esc(ch.name):'Channel','Welcome to this channel!');
   const srv=G.srvs[sid];
   const sKey=srv&&srv.serverKey;
-  G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
+  const cid=sid+'__'+chId;
+  async function processEnc(enc,msgId){
     if(!enc||!msgId||G.seen.has(msgId))return;G.seen.add(msgId);
     let msg=null;
-    // Try to decrypt with server key if available
     if(sKey){try{const d=await SEA.decrypt(enc,sKey);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}}
-    // Fallback: raw JSON (old messages)
     if(!msg){try{msg=typeof enc==='string'?JSON.parse(enc):enc;}catch(e){return;}}
     if(!msg)return;
     if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
@@ -1759,7 +1762,33 @@ async function loadChMsgs(sid,chId){
     const stored={...msg,channelId:chId,id:msgId};
     await DB.put('messages',stored);schedSave();
     if(G.curCh===chId)appendMsg(stored);
+  }
+  G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
+    await processEnc(enc,msgId);
   });
+  // Worker KV fallback for server channels
+  async function workerFetch(since){
+    if(!G.user||!_profileApi)return;
+    try{
+      const url=`${_profileApi}/api/ch-messages/${encodeURIComponent(cid)}`+(since?`?since=${since}`:'');
+      const r=await fetch(url);if(!r.ok)return;
+      const d=await r.json();
+      if(d.messages&&d.messages.length){
+        for(const m of d.messages)await processEnc(m.enc,m.msgId);
+        const maxTs=Math.max(...d.messages.map(m=>m.ts||0));
+        if(maxTs>0)G.chLastFetch[cid]=maxTs;
+      }
+    }catch(e){}
+  }
+  G.chWorkerFetchers[cid]=workerFetch;
+  setTimeout(()=>workerFetch(0),800);
+  if(!G.chWorkerPolls[cid]){
+    G.chWorkerPolls[cid]=setInterval(()=>{
+      if(!G.user||G.curCh!==chId||G.curSrv!==sid)return;
+      const cursor=G.chLastFetch[cid]?Math.max(0,G.chLastFetch[cid]-10000):0;
+      workerFetch(cursor);
+    },15000);
+  }
 }
 function clearChat(){
   G.curCh=null;G.curChT=null;
@@ -2049,6 +2078,12 @@ async function send(){
     if(sKey){try{payload=await SEA.encrypt(JSON.stringify(msg),sKey);}catch(e){payload=JSON.stringify(msg);}}
     else{payload=JSON.stringify(msg);}
     G.gun.get('sable-msgs').get(G.curSrv).get(G.curCh).get(id).put(payload);
+    if(_profileApi){
+      const cid=G.curSrv+'__'+G.curCh;
+      fetch(`${_profileApi}/api/ch-send`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cid,msgId:id,enc:payload,ts:msg.ts,senderPub:G.user.pub})
+      }).catch(()=>{});
+    }
   }
 }
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
@@ -2311,6 +2346,7 @@ async function mkConn(pPub,sid,chId,init){
   if(G.vpeers[pPub])return;
   const iceServers=await _getIceServers();
   const pc=new RTCPeerConnection({iceServers});G.vpeers[pPub]={pc,pendingIce:[]};
+  const vp=G.vpeers[pPub];
   if(G.lstream)G.lstream.getTracks().forEach(t=>pc.addTrack(t,G.lstream));
   pc.ontrack=e=>{
     const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
@@ -2342,6 +2378,8 @@ async function mkConn(pPub,sid,chId,init){
   pc.onconnectionstatechange=()=>{
     if(G.vpeers[pPub])G.vpeers[pPub].connState=pc.connectionState;
     renderVUI();
+    if(vp&&vp._offerRetryT){clearInterval(vp._offerRetryT);vp._offerRetryT=null;}
+    if(vp&&vp._answerRetryT){clearInterval(vp._answerRetryT);vp._answerRetryT=null;}
     const pName=(G.dms[pPub]&&(G.dms[pPub].displayName||G.dms[pPub].alias))||pPub.slice(0,8);
     if(pc.connectionState==='connecting'){
       // Safety net: if still connecting after 15 s, force an ICE restart.
@@ -2369,6 +2407,7 @@ async function mkConn(pPub,sid,chId,init){
     }else if(pc.connectionState==='connected'){
       if(G.vpeers[pPub])clearTimeout(G.vpeers[pPub]._connectT);
       toast(`🔊 Connected to ${pName}`,'ok',3000);
+      const sl=document.getElementById('vcall-state');if(sl)sl.textContent='● Connected';
     }else if(pc.connectionState==='failed'){
       if(G.vpeers[pPub])clearTimeout(G.vpeers[pPub]._connectT);
       if(init){
@@ -2408,10 +2447,21 @@ async function mkConn(pPub,sid,chId,init){
   };
   if(init){
     try{
-      const o=await pc.createOffer();await pc.setLocalDescription(o);
-      const offerStr=JSON.stringify(o);
-      G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('offer').put(offerStr);
-      sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'offer',data:offerStr});
+      const sendOffer=async(restart)=>{
+        const o=await pc.createOffer(restart?{iceRestart:true}:undefined);
+        await pc.setLocalDescription(o);
+        const offerStr=JSON.stringify(o);
+        G.gun.get('sable-sigs').get(sid).get(chId).get(pPub).get(G.user.pub).get('offer').put(offerStr);
+        sigSend({room:sid+'__'+chId,to:pPub,from:G.user.pub,type:'offer',data:offerStr});
+      };
+      await sendOffer(false);
+      let tries=0;
+      if(vp._offerRetryT){clearInterval(vp._offerRetryT);}
+      vp._offerRetryT=setInterval(async()=>{
+        if(!G.vpeers[pPub]||pc.connectionState==='connected'||pc.signalingState!=='have-local-offer'){clearInterval(vp._offerRetryT);vp._offerRetryT=null;return;}
+        if(tries++>=4){clearInterval(vp._offerRetryT);vp._offerRetryT=null;return;}
+        try{await sendOffer(true);}catch(e){}
+      },2000);
     }catch(e){
       console.error('[sable] createOffer failed:',e);
       toast('⚠️ Call setup failed (could not create offer) — check console','err');
@@ -2444,6 +2494,20 @@ function lsnSigs(sid,chId){
         const ansStr=JSON.stringify(a);
         G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(ansStr);
         sigSend({room:sid+'__'+chId,to:sp,from:G.user.pub,type:'answer',data:ansStr});
+        if(vp){
+          let tries=0;
+          if(vp._answerRetryT){clearInterval(vp._answerRetryT);}
+          vp._answerRetryT=setInterval(async()=>{
+            if(!G.vpeers[sp]||pc.connectionState==='connected'){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
+            if(tries++>=4){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
+            const ld=pc.localDescription;
+            if(ld&&ld.type==='answer'){
+              const aStr=JSON.stringify(ld);
+              G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(aStr);
+              sigSend({room:sid+'__'+chId,to:sp,from:G.user.pub,type:'answer',data:aStr});
+            }
+          },2000);
+        }
       }catch(e){console.error('[sable] Gun offer handling failed:',e);toast('⚠️ Call setup error (offer) — check console','err');}
     });
     sig.get('answer').once(async as=>{
@@ -2538,6 +2602,20 @@ function lsnSigs(sid,chId){
               const ansStr=JSON.stringify(a);
               G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(ansStr);
               sigSend({room,to:sp,from:G.user.pub,type:'answer',data:ansStr});
+              if(vp){
+                let tries=0;
+                if(vp._answerRetryT){clearInterval(vp._answerRetryT);}
+                vp._answerRetryT=setInterval(async()=>{
+                  if(!G.vpeers[sp]||pc.connectionState==='connected'){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
+                  if(tries++>=4){clearInterval(vp._answerRetryT);vp._answerRetryT=null;return;}
+                  const ld=pc.localDescription;
+                  if(ld&&ld.type==='answer'){
+                    const aStr=JSON.stringify(ld);
+                    G.gun.get('sable-sigs').get(sid).get(chId).get(sp).get(G.user.pub).get('answer').put(aStr);
+                    sigSend({room,to:sp,from:G.user.pub,type:'answer',data:aStr});
+                  }
+                },2000);
+              }
             }catch(e){console.error('[sable] KV offer handling failed:',e);toast('⚠️ Call setup error (offer) — check console','err');}
           } else if(sig.type==='answer'){
             const vp=G.vpeers[sp];const pc=vp&&vp.pc;
@@ -2901,6 +2979,7 @@ function stopRing(){
 function showIncomingCall(callerPub,callerAlias,callerName,callerEpub,cid,callId,callType){
   if(G.voice)return; // already in a call
   callType=callType||'audio';
+  if(_profileApi){fetch(`${_profileApi}/api/sig-clear/sable-ring/${encodeURIComponent(G.user.pub)}`,{method:'DELETE'}).catch(()=>{});}
   _incomingCallData={callerPub,callerAlias,callerName,callerEpub,cid,callId,callType};
   // Avatar
   const av=document.getElementById('incall-avatar');
@@ -2924,6 +3003,7 @@ function declineCall(){
   clearTimeout(G._ringDismissT);
   document.getElementById('incall-overlay').style.display='none';
   _incomingCallData=null;
+  if(_profileApi){fetch(`${_profileApi}/api/sig-clear/sable-ring/${encodeURIComponent(G.user.pub)}`,{method:'DELETE'}).catch(()=>{});}
 }
 async function acceptCall(){
   if(!_incomingCallData)return;
@@ -2967,6 +3047,7 @@ async function startCall(callId, withVideo){
   // Use a unique callId per session so stale signals from previous calls never pollute this one
   const _callId=callId||Date.now().toString(36);
   const callRoom=cid+'__'+_callId;
+  if(_profileApi){fetch(`${_profileApi}/api/sig-clear/sable-calls__${encodeURIComponent(callRoom)}/${encodeURIComponent(G.user.pub)}`,{method:'DELETE'}).catch(()=>{});}
   G.voice={sid:'sable-calls',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`};
   if(withVideo){
     _showVcallOverlay(peer, true);
@@ -3484,6 +3565,13 @@ async function init(){
   })();
   G.gun=Gun({peers:GUN_PEERS,localStorage:false});
   G.gu=G.gun.user();
+  // One-time AudioContext unlock on first user gesture (helps mobile + SFU audio)
+  document.addEventListener('click',async()=>{
+    try{
+      if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
+      if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();
+    }catch(e){}
+  },{once:true});
   // Attach relay status listeners immediately — 'hi' fires as soon as Gun
   // connects, which happens right after Gun({...}) is called. If we wait
   // until onLogin() it is already too late; the event has already fired.
