@@ -2744,9 +2744,20 @@ async function sigSend(payload){
       let txt='';
       try{txt=await r.text();}catch(_){}
       console.warn('[sable] sig-send HTTP error:',r.status,txt);
+      // Best-effort retry for non-ICE signals (ring/offer/answer/ready)
+      if(payload&&payload.type!=='ice'){
+        setTimeout(()=>fetch(`${_profileApi}/api/sig-send`,{
+          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+        }).catch(()=>{}),800);
+      }
     }
   }catch(e){
     console.warn('[sable] sig-send network error:',e);
+    if(payload&&payload.type!=='ice'){
+      setTimeout(()=>fetch(`${_profileApi}/api/sig-send`,{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+      }).catch(()=>{}),800);
+    }
   }
 }
 function rmPeer(pub){
@@ -2762,7 +2773,18 @@ function rmPeer(pub){
 }
 async function leaveVoice(){
   if(!G.voice)return;
-  if(G.voice.isSFU)return leaveSFU();
+  if(G.voice.isSFU){
+    try{await leaveSFU();}catch(e){console.warn('leaveSFU error',e);}
+    // Force UI cleanup so refresh is never required
+    document.getElementById('vcall-overlay').classList.remove('on');
+    const rv=document.getElementById('vcall-remote-vid');if(rv){rv.srcObject=null;rv.style.display='none';}
+    const lv=document.getElementById('vcall-local-vid');if(lv){lv.srcObject=null;lv.style.display='none';}
+    document.getElementById('vcall-no-vid').style.display='flex';
+    document.getElementById('voice').style.display='none';document.getElementById('voice').classList.remove('on');
+    document.getElementById('chat').style.display='flex';
+    G.voice=null;G.sfuRoom=null;G.sfuSession=null;G.sfuParticipants={};G.vpeers={};
+    return;
+  }
   const{sid,chId}=G.voice;
   G.gun.get('sable-voice').get(sid).get(chId).get(G.user.pub).put({active:false,pub:G.user.pub});
   Object.keys(G.vpeers).forEach(rmPeer);
@@ -3091,6 +3113,9 @@ async function startSfuDmCall(callId, withVideo, isIncoming){
     }));
     sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
       data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})});
+    // Retry ring in 1s in case first send was dropped
+    setTimeout(()=>sigSend({room:'sable-ring',to:peer.pub,from:G.user.pub,type:'ring',
+      data:JSON.stringify({callerAlias:G.user.alias,callerName:G.user.displayName||G.user.alias,cid,callId:_callId,callType:G.callType})}),1000);
   }
 
   // SFU session
