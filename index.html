@@ -2878,10 +2878,14 @@ async function toggleSfuCamera(){
         G.sfuVideoSender=sender;
         G.sfuVideoMid=videoMid;
       }
-      G.sfuVideo=true;
-      // Update room roster quickly so peers can subscribe to video_0.
-      _sfuGunHeartbeat(false);
-      const btn=document.getElementById('vcam-btn');
+        G.sfuVideo=true;
+        // Update room roster quickly so peers can subscribe to video_0.
+        _sfuGunHeartbeat(false);
+        if(_profileApi&&G.sfuRoom&&G.user&&G.sfuSession){
+          fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({room:G.sfuRoom,pub:G.user.pub,sessionId:G.sfuSession,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:true})}).catch(()=>{});
+        }
+        const btn=document.getElementById('vcam-btn');
       btn.textContent='📹';btn.style.background='var(--accent)';btn.style.color='#fff';
       toast('📹 Camera on','ok',2000);
       // Show self-view in voice grid
@@ -2894,9 +2898,13 @@ async function toggleSfuCamera(){
   }else{
     // Turn camera off
     if(G.sfuVideoStream){G.sfuVideoStream.getTracks().forEach(t=>t.stop());G.sfuVideoStream=null;}
-    G.sfuVideo=false;
-    try{ if(G.sfuVideoSender&&G.sfuVideoSender.replaceTrack) await G.sfuVideoSender.replaceTrack(null); }catch(_){}
-    _sfuGunHeartbeat(false);
+      G.sfuVideo=false;
+      try{ if(G.sfuVideoSender&&G.sfuVideoSender.replaceTrack) await G.sfuVideoSender.replaceTrack(null); }catch(_){}
+      _sfuGunHeartbeat(false);
+      if(_profileApi&&G.sfuRoom&&G.user&&G.sfuSession){
+        fetch(`${_profileApi}/api/sfu/room/heartbeat`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({room:G.sfuRoom,pub:G.user.pub,sessionId:G.sfuSession,alias:G.user.alias,displayName:G.user.displayName||G.user.alias,hasVideo:false})}).catch(()=>{});
+      }
     const btn=document.getElementById('vcam-btn');
     btn.textContent='📷';btn.style.background='var(--bg3)';btn.style.color='var(--t1)';
     toast('Camera off','ok',2000);
@@ -3732,7 +3740,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v7';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v8';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
