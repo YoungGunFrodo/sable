@@ -2831,6 +2831,10 @@ function toggleVcallMute(){
   b.textContent=G.muted?'🔇':'🎤';b.classList.toggle('on',G.muted);
 }
 function toggleVcallCam(){
+  // For SFU DM calls, use the SFU camera toggle so remote peers can subscribe.
+  if(G.voice?.isSFU&&G.voice?.isDMCall){
+    return toggleSfuCamera();
+  }
   if(!G.lstream)return;
   const vt=G.lstream.getVideoTracks();
   if(!vt.length)return;
@@ -3702,7 +3706,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v5';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v6';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
