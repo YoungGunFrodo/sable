@@ -1725,7 +1725,9 @@ function selCh(sid,chId,type){
   renderChList(sid);loadChMsgs(sid,chId);
 }
 async function loadChMsgs(sid,chId){
-  if(!sid||!chId){
+  const sidStr=String(sid||'').trim();
+  const chStr=String(chId||'').trim();
+  if(!sidStr||!chStr){
     console.warn('[sable] loadChMsgs skipped — missing serverId or channelId',sid,chId);
     return;
   }
@@ -1735,15 +1737,17 @@ async function loadChMsgs(sid,chId){
   const srv=G.srvs[sid];
   const sKey=srv&&srv.serverKey;
   // Worker poll fallback for server messages (reliable cross-browser)
-  async function fetchSrvMsgs(sinceOverride){
-    if(!_profileApi) return;
-    const since = typeof sinceOverride==='number' ? sinceOverride : (G.srvLastFetch[chId]||0);
-    try{
-      const r=await fetch(`${_profileApi}/api/server-messages/${encodeURIComponent(String(sid))}/${encodeURIComponent(String(chId))}?since=${since}`);
-      if(!r.ok){console.warn('[sable] server-messages fetch failed',r.status);return;}
-      const d=await r.json();
-      if(!d.messages||!d.messages.length) return;
-      for(const m of d.messages){
+    async function fetchSrvMsgs(sinceOverride){
+      if(!sidStr||!chStr) return;
+      if(!_profileApi) return;
+      const sinceKey=sidStr+'::'+chStr;
+      const since = typeof sinceOverride==='number' ? sinceOverride : (G.srvLastFetch[sinceKey]||0);
+      try{
+        const r=await fetch(`${_profileApi}/api/server-messages/${encodeURIComponent(sidStr)}/${encodeURIComponent(chStr)}?since=${since}`);
+        if(!r.ok){console.warn('[sable] server-messages fetch failed',r.status);return;}
+        const d=await r.json();
+        if(!d.messages||!d.messages.length) return;
+        for(const m of d.messages){
         if(!m||!m.msgId||G.seen.has(m.msgId)) continue;
         let msg=null;
         if(sKey){try{const dec=await SEA.decrypt(m.enc,sKey);msg=typeof dec==='string'?JSON.parse(dec):dec;}catch(e){}}
@@ -1752,16 +1756,18 @@ async function loadChMsgs(sid,chId){
         const stored={...msg,channelId:chId,id:m.msgId};
         G.seen.add(m.msgId);
         await DB.put('messages',stored);
-        if(G.curCh===chId) appendMsg(stored);
-        if(m.ts && m.ts> (G.srvLastFetch[chId]||0)) G.srvLastFetch[chId]=m.ts;
-      }
-      schedSave();
-    }catch(e){}
-  }
-  if(G._srvPollT) clearInterval(G._srvPollT);
-  G._srvPollCid=chId;
-  G._srvPollT=setInterval(()=>{ if(G.curCh===chId) fetchSrvMsgs(); },5000);
-  fetchSrvMsgs(0);
+          if(G.curCh===chId) appendMsg(stored);
+          if(m.ts && m.ts> (G.srvLastFetch[sinceKey]||0)) G.srvLastFetch[sinceKey]=m.ts;
+        }
+        schedSave();
+      }catch(e){}
+    }
+    if(G._srvPollT) clearInterval(G._srvPollT);
+    G._srvPollCid=chId;
+    G._srvPollT=setInterval(()=>{ 
+      if(G.curCh===chId && G.curSrv===sid && document.visibilityState!=='hidden') fetchSrvMsgs(); 
+    },8000);
+    fetchSrvMsgs(0);
   G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
     if(!enc||!msgId||G.seen.has(msgId))return;G.seen.add(msgId);
     let msg=null;
@@ -2168,8 +2174,8 @@ async function joinVoice(sid,chId,chName){
   // RTCPeerConnection to CF SFU
   const iceServers=await _getIceServers();
   const pc=new RTCPeerConnection({iceServers,bundlePolicy:'max-bundle'});
-  G.sfuPC=pc;G.sfuSession=sessionId;G.sfuSubscribed=new Map();G.sfuTracksMap={};
-  G.sfuVideo=!!withVideo;
+    G.sfuPC=pc;G.sfuSession=sessionId;G.sfuSubscribed=new Map();G.sfuTracksMap={};
+    G.sfuVideo=false;G.sfuVideoStream=null;
   G.lstream.getAudioTracks().forEach(t=>pc.addTrack(t,G.lstream));
   // Publish local audio to SFU
   const offer=await pc.createOffer();await pc.setLocalDescription(offer);
@@ -3696,7 +3702,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v4';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v5';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
