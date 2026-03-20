@@ -3075,9 +3075,20 @@ async function acceptCall(){
   setTimeout(()=>startCall(callId, callType==='video'),400);
 }
 
-async function startCall(callId, withVideo){
-  if(!G.curDmP)return;
-  const peer=G.curDmP;
+  async function _silentAudioStream(){
+    try{
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      const dst=ctx.createMediaStreamDestination();
+      // Create a silent oscillator so the track stays alive.
+      const osc=ctx.createOscillator();const gain=ctx.createGain();
+      gain.gain.value=0.0;osc.connect(gain);gain.connect(dst);osc.start();
+      return dst.stream;
+    }catch(e){return null;}
+  }
+
+  async function startCall(callId, withVideo){
+    if(!G.curDmP)return;
+    const peer=G.curDmP;
   // One active call at a time
   if(G.voice) await leaveVoice();
   // Unlock AudioContext during this user gesture so remote audio can play
@@ -3085,15 +3096,28 @@ async function startCall(callId, withVideo){
     if(!G._voiceCtx)G._voiceCtx=new(window.AudioContext||window.webkitAudioContext)();
     if(G._voiceCtx.state==='suspended')await G._voiceCtx.resume();
   }catch(e){}
-  const mediaConstraints=withVideo
-    ?{audio:_audioConstraints(),video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}}
-    :{audio:_audioConstraints(),video:false};
-  try{G.lstream=await navigator.mediaDevices.getUserMedia(mediaConstraints);}
-  catch(e){return toast(withVideo?'Camera/microphone access denied — check browser permissions.':'Microphone access denied.','err');}
+    const mediaConstraints=withVideo
+      ?{audio:_audioConstraints(),video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}}
+      :{audio:_audioConstraints(),video:false};
+    let gotLocal=false;
+    try{
+      G.lstream=await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      gotLocal=true;
+    }catch(e){
+      // Allow receive-only calls by falling back to a silent audio track.
+      const silent=await _silentAudioStream();
+      if(silent){
+        G.lstream=silent;
+        toast('No mic/camera detected — joining call in listen-only mode.','warn',4000);
+      }else{
+        return toast(withVideo?'Camera/microphone access denied — check browser permissions.':'Microphone access denied.','err');
+      }
+    }
     G.callType=withVideo?'video':'audio';
-    // Track whether we are publishing video in this SFU session (used by room join/heartbeat)
-    G.sfuVideo=!!withVideo;
-    G.sfuVideoStream=withVideo ? G.lstream : null;
+    // Track whether we are publishing real video in this SFU session.
+    G.sfuVideo=withVideo && gotLocal && (G.lstream.getVideoTracks().length>0);
+    G.sfuVideoStream=G.sfuVideo ? G.lstream : null;
+    // (G.sfuVideo/G.sfuVideoStream already set above)
   const cid=dmcid(G.user.pub,peer.pub);
     const _callId=callId||Date.now().toString(36);
     // Use a stable room id so caller/callee always meet even if callId is missing.
@@ -3122,9 +3146,11 @@ async function startCall(callId, withVideo){
   const iceServers=await _getIceServers();
   const pc=new RTCPeerConnection({iceServers,bundlePolicy:'max-bundle'});
   G.sfuPC=pc;G.sfuSession=sessionId;G.sfuSubscribed=new Map();G.sfuTracksMap={};
-  // Add local tracks
-  G.lstream.getAudioTracks().forEach(t=>pc.addTrack(t,G.lstream));
-  if(withVideo) G.lstream.getVideoTracks().forEach(t=>pc.addTrack(t,G.lstream));
+    // Add local tracks (may be silent audio-only if no devices)
+    if(G.lstream){
+      G.lstream.getAudioTracks().forEach(t=>pc.addTrack(t,G.lstream));
+      if(G.sfuVideo) G.lstream.getVideoTracks().forEach(t=>pc.addTrack(t,G.lstream));
+    }
   // Publish local tracks to SFU
   const offer=await pc.createOffer();await pc.setLocalDescription(offer);
   let answerSdp;
@@ -3136,8 +3162,8 @@ async function startCall(callId, withVideo){
       const vTr=pc.getTransceivers().find(tr=>tr&&tr.sender&&tr.sender.track&&tr.sender.track.kind==='video');
       if(vTr&&vTr.mid!=null)videoMid=String(vTr.mid);
     }catch(_){}
-    const tracks=[{mid:audioMid,trackName:'audio_0'}];
-    if(withVideo) tracks.push({mid:videoMid,trackName:'video_0'});
+      const tracks=[{mid:audioMid,trackName:'audio_0'}];
+      if(G.sfuVideo) tracks.push({mid:videoMid,trackName:'video_0'});
     const pr=await fetch(`${_profileApi}/api/sfu/publish`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({sessionId,sdp:offer.sdp,tracks}),signal:AbortSignal.timeout(8000)});
     if(!pr.ok)throw new Error('publish status '+pr.status+' '+(await pr.text()));
@@ -3706,7 +3732,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v6';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v7';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
