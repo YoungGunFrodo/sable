@@ -243,6 +243,17 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
     z-index:2400;display:none
   }
   #ch-panel.open + #ch-panel-backdrop{display:block}
+  #friends-panel{
+    position:fixed;right:-100%;top:0;bottom:64px;width:78vw;max-width:320px;
+    z-index:2500;border-left:1px solid var(--border);transition:right .2s ease;
+    background:var(--bg2);box-shadow:-16px 0 40px rgba(0,0,0,.45);display:flex;flex-direction:column
+  }
+  #friends-panel.open{right:0}
+  #friends-panel-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
+    z-index:2400;display:none
+  }
+  #friends-panel.open + #friends-panel-backdrop{display:block}
   #main{padding-bottom:64px}
   #mbrs{display:none}
   #chat-hdr{gap:8px}
@@ -251,6 +262,14 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
   #chat{min-height:0}
   #msgs{padding:12px 0}
   .iarea{padding:0 12px 12px}
+  #friends{display:none}
+  #friends-panel .friends-body{padding:12px;overflow-y:auto}
+  #friends-panel .friends-head{height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border)}
+  #friends-panel .friends-head h3{font-size:15px;font-weight:700;color:#fff}
+  #friends-panel .friends-head .ibt{margin-left:auto}
+  #srv-hdr .mob-tabs{display:flex;gap:6px;margin-top:8px}
+  #srv-hdr .mob-tabs button{flex:1;border:none;background:var(--bg0);color:var(--t2);padding:6px 8px;border-radius:8px;font-size:12px}
+  #srv-hdr .mob-tabs button.on{background:var(--accent);color:#fff}
 }
 
 /* Incoming Call Overlay */
@@ -414,11 +433,15 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 
   <!-- Channel panel -->
   <div id="ch-panel">
-	    <div id="srv-hdr">
-	      <span id="srv-hdr-name">Direct Messages</span>
-	      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10z"/></svg>
-	      <button class="ibt mob-only" style="margin-left:auto" onclick="event.stopPropagation();closeChPanel()">✕</button>
-	    </div>
+    <div id="srv-hdr">
+      <span id="srv-hdr-name">Direct Messages</span>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10z"/></svg>
+      <button class="ibt mob-only" style="margin-left:auto" onclick="event.stopPropagation();closeChPanel()">✕</button>
+      <div class="mob-tabs mob-only" id="mob-tabs">
+        <button id="mob-tab-dm" class="on" onclick="event.stopPropagation();showDmList()">DMs</button>
+        <button id="mob-tab-srv" onclick="event.stopPropagation();showSrvList()">Servers</button>
+      </div>
+    </div>
     <div id="ch-list"></div>
     <div class="ubar">
       <div class="uav" id="myav" style="background:#7289da;color:#fff;">?<div class="online-dot"></div></div>
@@ -440,9 +463,19 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
       </div>
     </div>
 	  </div>
-	  <div id="ch-panel-backdrop" onclick="closeChPanel()"></div>
+  <div id="ch-panel-backdrop" onclick="closeChPanel()"></div>
+  <div id="friends-panel">
+    <div class="friends-head">
+      <h3>Friends</h3>
+      <button class="ibt" onclick="closeFriendsPanel()">✕</button>
+    </div>
+    <div class="friends-body">
+      <div id="friends-panel-list"></div>
+    </div>
+  </div>
+  <div id="friends-panel-backdrop" onclick="closeFriendsPanel()"></div>
 	
-	  <!-- Main content -->
+  <!-- Main content -->
   <div id="main">
     <div id="chat" style="display:flex;flex-direction:column;flex:1;min-width:0">
         <div id="chat-hdr">
@@ -1563,19 +1596,24 @@ function goSrv(sid){
   const tChs=Object.values(s.channels||{}).filter(c=>c&&c.type==='text').sort((a,b)=>a.pos-b.pos);
   if(tChs.length)selCh(sid,tChs[0].id,'text');else clearChat();
 }
-function renderChList(sid){
-  const s=G.srvs[sid];if(!s)return;
+function renderSrvSection(sid){
+  const s=G.srvs[sid];if(!s)return '';
   const chs=Object.values(s.channels||{}).filter(c=>c&&c.name).sort((a,b)=>a.pos-b.pos);
   const txt=chs.filter(c=>c.type==='text'),voc=chs.filter(c=>c.type==='voice');
   let h=`<div><div class="csh"><span>Text Channels</span><div class="cadd" onclick="showM('acm')">+</div></div>`;
   txt.forEach(c=>{h+=`<div class="citem${G.curCh===c.id?' on':''}" onclick="selCh('${sid}','${c.id}','text')"><span style="font-family:monospace;opacity:.7">#</span><span class="cname">${esc(c.name)}</span></div>`;});
   h+=`</div><div><div class="csh"><span>Voice Channels</span><div class="cadd" onclick="showM('acm')">+</div></div>`;
   voc.forEach(c=>{h+=`<div class="citem${G.curCh===c.id&&G.curChT==='voice'?' on':''}" onclick="joinVoice('${sid}','${c.id}','${esc(c.name)}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg><span class="cname">${esc(c.name)}</span></div>`;});
-  h+='</div>';document.getElementById('ch-list').innerHTML=h;
+  return h+'</div>';
+}
+function renderChList(sid){
+  const ch=document.getElementById('ch-list');
+  if(!ch)return;
+  ch.innerHTML=renderSrvSection(sid)||'';
 }
 
 // ── DMs ──────────────────────────────────────────────────
-function renderDMList(){
+function renderDmSection(){
   const peers=Object.values(G.dms);
   let h=`<div><div class="csh"><span>Direct Messages</span><div class="cadd" onclick="showM('dmm')">+</div></div>`;
   if(!peers.length)h+=`<div style="padding:8px 16px;font-size:13px;color:var(--t3)">No DMs yet. Click + to message someone.</div>`;
@@ -1585,7 +1623,13 @@ function renderDMList(){
     const unread=(G.dmUnread&&G.dmUnread[p.pub])||0;
     const badge=unread?`<div style="background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;margin-right:4px;flex-shrink:0">${unread>99?'99+':unread}</div>`:'';
     h+=`<div class="ditem${G.curCh===cid?' on':''}${unread?' unread':''}" onclick="selDM('${p.pub}')"><div class="dav" style="background:${cf(p.pub)};color:#fff">${avH}</div><div style="flex:1;overflow:hidden"><div class="dname" style="${unread?'font-weight:700;color:#fff':''}">${esc(p.displayName||p.alias)}</div></div>${badge}<div class="dcls" onclick="event.stopPropagation();deleteDM('${p.pub}')" title="Close conversation">✕</div></div>`;
-  });h+='</div>';document.getElementById('ch-list').innerHTML=h;
+  });h+='</div>';
+  return h;
+}
+function renderDMList(){
+  const ch=document.getElementById('ch-list');
+  if(!ch)return;
+  ch.innerHTML=renderDmSection();
 }
 async function deleteDM(pub){
   const peer=G.dms[pub];if(!peer)return;
@@ -1868,6 +1912,30 @@ function toggleChPanel(){
 function closeChPanel(){
   const p=document.getElementById('ch-panel');
   if(p) p.classList.remove('open');
+}
+function openFriendsPanel(){
+  const p=document.getElementById('friends-panel');
+  if(!p)return;
+  // Populate from existing friends list
+  const list=document.getElementById('friends-panel-list');
+  if(list) list.innerHTML=document.getElementById('friends')?.innerHTML||'<div style="color:var(--t3);padding:8px">No friends yet.</div>';
+  p.classList.add('open');
+}
+function closeFriendsPanel(){
+  const p=document.getElementById('friends-panel');
+  if(p) p.classList.remove('open');
+}
+function showDmList(){
+  const ch=document.getElementById('ch-list');
+  if(ch){ ch.innerHTML=renderDmSection(); }
+  document.getElementById('mob-tab-dm')?.classList.add('on');
+  document.getElementById('mob-tab-srv')?.classList.remove('on');
+}
+function showSrvList(){
+  const ch=document.getElementById('ch-list');
+  if(ch && G.curSrv && G.curSrv!=='dm'){ ch.innerHTML=renderSrvSection(G.curSrv); }
+  document.getElementById('mob-tab-dm')?.classList.remove('on');
+  document.getElementById('mob-tab-srv')?.classList.add('on');
 }
 
 // ── MESSAGES ─────────────────────────────────────────────
@@ -2156,7 +2224,15 @@ function renderMbrs(sid){
     return `<div class="mbritem"><div class="mbrav" style="background:${cf(m.pub||'')};color:#fff">${_avH}<div class="online-dot"></div></div><span class="mbrnm">${esc(m.displayName||m.alias||'?')}${m.pub===G.user.pub?' (you)':''}</span></div>`;
   }).join('');
 }
-function toggleMbrs(){const s=document.getElementById('mbrs');s.style.display=s.style.display==='none'?'block':'none';}
+function toggleMbrs(){
+  // On mobile, use the right-side friends panel instead of the members column.
+  if(window.innerWidth<=900){
+    openFriendsPanel();
+    return;
+  }
+  const s=document.getElementById('mbrs');
+  s.style.display=s.style.display==='none'?'block':'none';
+}
 
 // ── VOICE — Cloudflare Calls SFU for server channels ────
 function _audioConstraints(){
@@ -3822,7 +3898,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v13';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v14';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
