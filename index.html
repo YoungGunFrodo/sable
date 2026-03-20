@@ -1725,6 +1725,10 @@ function selCh(sid,chId,type){
   renderChList(sid);loadChMsgs(sid,chId);
 }
 async function loadChMsgs(sid,chId){
+  if(!sid||!chId){
+    console.warn('[sable] loadChMsgs skipped — missing serverId or channelId',sid,chId);
+    return;
+  }
   const msgs=await DB.byIdx('messages','channelId',chId);msgs.sort((a,b)=>a.ts-b.ts);
   const s=G.srvs[sid],ch=s&&s.channels&&s.channels[chId];
   renderMsgList(msgs,ch?'#'+esc(ch.name):'Channel','Welcome to this channel!');
@@ -1735,8 +1739,8 @@ async function loadChMsgs(sid,chId){
     if(!_profileApi) return;
     const since = typeof sinceOverride==='number' ? sinceOverride : (G.srvLastFetch[chId]||0);
     try{
-      const r=await fetch(`${_profileApi}/api/server-messages/${encodeURIComponent(sid)}/${encodeURIComponent(chId)}?since=${since}`);
-      if(!r.ok) return;
+      const r=await fetch(`${_profileApi}/api/server-messages/${encodeURIComponent(String(sid))}/${encodeURIComponent(String(chId))}?since=${since}`);
+      if(!r.ok){console.warn('[sable] server-messages fetch failed',r.status);return;}
       const d=await r.json();
       if(!d.messages||!d.messages.length) return;
       for(const m of d.messages){
@@ -2044,13 +2048,15 @@ async function send(){
     if(sKey){try{payload=await SEA.encrypt(JSON.stringify(msg),sKey);}catch(e){payload=JSON.stringify(msg);}}
     else{payload=JSON.stringify(msg);}
     G.gun.get('sable-msgs').get(G.curSrv).get(G.curCh).get(id).put(payload);
-    if(_profileApi){
-      fetch(`${_profileApi}/api/server-msg-send`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({serverId:G.curSrv,channelId:G.curCh,msgId:id,enc:payload,ts:msg.ts,senderPub:G.user.pub})
-      }).catch(()=>{});
+      if(_profileApi&&G.curSrv&&G.curCh){
+        fetch(`${_profileApi}/api/server-msg-send`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({serverId:G.curSrv,channelId:G.curCh,msgId:id,enc:payload,ts:msg.ts,senderPub:G.user.pub})
+        }).catch(()=>{});
+      }else if(_profileApi){
+        console.warn('[sable] server-msg-send skipped — missing serverId/channelId',G.curSrv,G.curCh);
+      }
     }
   }
-}
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
 
 // ── MEMBERS ──────────────────────────────────────────────
@@ -3074,7 +3080,10 @@ async function startCall(callId, withVideo){
     :{audio:_audioConstraints(),video:false};
   try{G.lstream=await navigator.mediaDevices.getUserMedia(mediaConstraints);}
   catch(e){return toast(withVideo?'Camera/microphone access denied — check browser permissions.':'Microphone access denied.','err');}
-  G.callType=withVideo?'video':'audio';
+    G.callType=withVideo?'video':'audio';
+    // Track whether we are publishing video in this SFU session (used by room join/heartbeat)
+    G.sfuVideo=!!withVideo;
+    G.sfuVideoStream=withVideo ? G.lstream : null;
   const cid=dmcid(G.user.pub,peer.pub);
     const _callId=callId||Date.now().toString(36);
     // Use a stable room id so caller/callee always meet even if callId is missing.
@@ -3161,7 +3170,7 @@ async function startCall(callId, withVideo){
       }
     };
   // Set voice state and show UI
-  G.sfuRoom=callRoom;G.voice={sid:'dm',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`,isSFU:true,isDMCall:true};
+    G.sfuRoom=callRoom;G.voice={sid:'dm',chId:callRoom,chName:`Call with ${peer.displayName||peer.alias}`,isSFU:true,isDMCall:true};
   G.sfuParticipants={};
   if(withVideo){
     _showVcallOverlay(peer, isCaller);
@@ -3687,7 +3696,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-19-sfu-dm-servermsg-v3';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v4';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
