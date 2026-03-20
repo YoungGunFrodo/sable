@@ -114,6 +114,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .hacts{margin-left:auto;display:flex;gap:6px;align-items:center}
 .ibt{width:28px;height:28px;border-radius:5px;border:none;background:none;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
 .ibt:hover{color:var(--t1);background:var(--hover)}
+.mob-only{display:none}
 #chat{min-height:0}
 #msgs{flex:1;min-height:0;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column}
 .attach-bar{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:rgba(0,0,0,.2);border-top:1px solid rgba(255,255,255,.06)}
@@ -220,6 +221,31 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .toast{background:var(--hover);color:var(--t1);padding:12px 16px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.5);animation:tin .2s ease;max-width:340px;border-left:4px solid var(--accent);pointer-events:all}
 .toast.err{border-left-color:var(--red)}.toast.ok{border-left-color:var(--green)}.toast.warn{border-left-color:var(--yellow)}
 @keyframes tin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Mobile layout */
+@media (max-width: 900px){
+  #app{flex-direction:column}
+  #srv-list{
+    position:fixed;left:0;right:0;bottom:0;height:64px;width:100%;
+    flex-direction:row;justify-content:flex-start;padding:6px 8px;gap:8px;
+    z-index:3000;border-right:none;border-top:1px solid var(--border);
+    background:rgba(22,24,27,.96);backdrop-filter:blur(8px)
+  }
+  #ch-panel{
+    position:fixed;left:-100%;top:0;bottom:64px;width:78vw;max-width:320px;
+    z-index:2500;border-right:1px solid var(--border);transition:left .2s ease;
+    box-shadow:16px 0 40px rgba(0,0,0,.45)
+  }
+  #ch-panel.open{left:0}
+  #main{padding-bottom:64px}
+  #mbrs{display:none}
+  #chat-hdr{gap:8px}
+  .mob-only{display:inline-flex}
+  #srv-hdr{position:sticky;top:0;background:var(--bg2);z-index:1}
+  #chat{min-height:0}
+  #msgs{padding:12px 0}
+  .iarea{padding:0 12px 12px}
+}
 
 /* Incoming Call Overlay */
 #incall-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
@@ -411,8 +437,9 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
   <!-- Main content -->
   <div id="main">
     <div id="chat" style="display:flex;flex-direction:column;flex:1;min-width:0">
-      <div id="chat-hdr">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        <div id="chat-hdr">
+          <button class="ibt mob-only" id="ch-toggle" title="Channels" onclick="toggleChPanel()">☰</button>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
         <h2 id="chat-title">Select a channel</h2>
         <span id="build-badge">v?</span>
         <div class="hacts">
@@ -565,12 +592,18 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
       </div>
     </div>
 
-    <div class="ssec">
-      <h4>🌐 Network &amp; Relay</h4>
-      <p style="font-size:12px;color:var(--t3);margin-bottom:8px">Messages are relayed through a Gun.js peer. Leave blank to use the default public relay. <a href="https://github.com/amark/gun#ecology" target="_blank" style="color:var(--accent)">Host your own relay</a> for reliability.</p>
-      <div class="fg"><label>Relay WebSocket URL</label><input id="relay-url" type="url" placeholder="wss://your-relay.example.com/gun" style="font-family:monospace;font-size:12px"/></div>
-      <p id="relay-status-modal" style="font-size:12px;margin-top:6px;color:var(--t3)"></p>
-    </div>
+      <div class="ssec">
+        <h4>🌐 Network &amp; Relay</h4>
+        <p style="font-size:12px;color:var(--t3);margin-bottom:8px">Messages are relayed through a Gun.js peer. Leave blank to use the default public relay. <a href="https://github.com/amark/gun#ecology" target="_blank" style="color:var(--accent)">Host your own relay</a> for reliability.</p>
+        <div class="fg"><label>Relay WebSocket URL</label><input id="relay-url" type="url" placeholder="wss://your-relay.example.com/gun" style="font-family:monospace;font-size:12px"/></div>
+        <p id="relay-status-modal" style="font-size:12px;margin-top:6px;color:var(--t3)"></p>
+      </div>
+
+      <div class="ssec">
+        <h4>🔔 Notifications</h4>
+        <p id="notif-status" style="font-size:12px;color:var(--t3);margin-bottom:8px">Browser notifications are off.</p>
+        <button class="btn btn-ghost btn-sm" onclick="requestNotifications()">Enable Notifications</button>
+      </div>
 
     <div class="ssec">
       <h4>📞 Call Debug</h4>
@@ -698,6 +731,8 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 // │  Example: 'https://sable-profile.your-name.workers.dev'        │
 // └─────────────────────────────────────────────────────────────────┘
 const PROFILE_API_URL='https://sable-profile.logans-automation.workers.dev';
+// Use D1 polling for server messages by default to reduce Gun sync churn.
+const USE_GUN_SERVER_MSGS=false;
 
 // Gun relay peers — used for real-time message delivery, voice signaling,
 // and presence. relay.peer.ooo is maintained by the Gun.js team.
@@ -945,6 +980,24 @@ const fmtTs=ts=>{if(!ts)return'';const d=new Date(ts),t=new Date();return d.toDa
 const lfy=t=>t.replace(/(https?:\/\/[^\s<>"]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--blue)">$1</a>');
 function arz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,200)+'px'}
 function toast(m,t='info',d=4000){const e=document.createElement('div');e.className=`toast ${t}`;e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),d)}
+function notifyMsg(title,body,tag){
+  // Prompt once on first notification attempt if not yet decided.
+  if(typeof Notification!=='undefined' && Notification.permission==='default'){
+    Notification.requestPermission().catch(()=>{});
+  }
+  toast(title+': '+body,'info',4500);
+  if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    try{ new Notification(title,{body,tag}); }catch(e){}
+  }
+}
+async function requestNotifications(){
+  if(typeof Notification==='undefined') return toast('Notifications not supported in this browser.','err');
+  const p=await Notification.requestPermission();
+  if(p==='granted') toast('Notifications enabled!','ok');
+  else toast('Notifications blocked by browser.','warn',4000);
+  const ns=document.getElementById('notif-status');
+  if(ns) ns.textContent=`Browser notifications: ${p}.`;
+}
 function showM(id){document.getElementById(id).classList.add('on')}
 function hideM(id){document.getElementById(id).classList.remove('on')}
 function copyEl(el,msg){navigator.clipboard.writeText(el.textContent).then(()=>toast(msg,'ok'))}
@@ -1489,6 +1542,7 @@ function goDMs(){
   document.getElementById('mbrs-dm').style.display='block';
 }
 function goSrv(sid){
+  closeChPanel();
   G.curSrv=sid;const s=G.srvs[sid];if(!s)return;
   document.querySelectorAll('.sicon.srv').forEach(e=>e.classList.remove('on'));
   const icon=document.querySelector(`.sicon[data-sid="${sid}"]`);if(icon)icon.classList.add('on');
@@ -1612,21 +1666,15 @@ function subDM(pPub){
     await DB.put('messages',stored);schedSave();
     if(G.curCh===cid){
       appendMsg(stored);
-    } else if(msg.authorPub && msg.authorPub !== G.user.pub) {
-      // Only count messages from the OTHER person (not own sent messages) as unread
-      if(!G.dmUnread)G.dmUnread={};
-      G.dmUnread[pPub]=(G.dmUnread[pPub]||0)+1;
-      if(G.curSrv==='dm')renderDMList();
-      // Browser notification (if permission granted)
-      if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+      } else if(msg.authorPub && msg.authorPub !== G.user.pub) {
+        // Only count messages from the OTHER person (not own sent messages) as unread
+        if(!G.dmUnread)G.dmUnread={};
+        G.dmUnread[pPub]=(G.dmUnread[pPub]||0)+1;
+        if(G.curSrv==='dm')renderDMList();
         const _peer=G.dms[pPub];
-        try{
-          const body=msg.content?msg.content.slice(0,80):'[Attachment]';
-          new Notification(_peer?((_peer.displayName||_peer.alias)+' says:'):'New message',
-            {body,tag:'sable-dm-'+pPub});
-        }catch(e){}
+        const body=msg.content?msg.content.slice(0,80):'[Attachment]';
+        notifyMsg(_peer?((_peer.displayName||_peer.alias)+' says'):'New DM',body,'sable-dm-'+pPub);
       }
-    }
   }
 
   // Gun relay scan (best-effort real-time)
@@ -1677,6 +1725,7 @@ function subDM(pPub){
 async function selDM(pPub){
   const peer=G.dms[pPub];if(!peer)return;
   G.curDmP=peer;const cid=dmcid(G.user.pub,pPub);
+  closeChPanel();
   G.curCh=cid;G.curChT='dm';G.curSrv='dm';
   G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
   // Clear unread badge for this conversation
@@ -1712,6 +1761,7 @@ async function selDM(pPub){
 
 // ── CHANNELS ─────────────────────────────────────────────
 function selCh(sid,chId,type){
+  closeChPanel();
   if(G.voice)leaveVoice();
   G.curCh=chId;G.curChT=type;G.curSrv=sid;
   G.pendingAttachments=[];renderAttachmentBar();toggleStickerPicker(false);
@@ -1756,7 +1806,13 @@ async function loadChMsgs(sid,chId){
         const stored={...msg,channelId:chId,id:m.msgId};
         G.seen.add(m.msgId);
         await DB.put('messages',stored);
-          if(G.curCh===chId) appendMsg(stored);
+          if(G.curCh===chId) {
+            appendMsg(stored);
+          } else if(msg.authorPub && msg.authorPub !== G.user.pub) {
+            const title=`#${(ch&&ch.name)||'channel'} · ${esc((srv&&srv.name)||'Server')}`.replace(/&amp;/g,'&');
+            const body=msg.content?msg.content.slice(0,80):'[Attachment]';
+            notifyMsg(title,body,'sable-srv-'+sidStr+'-'+chStr);
+          }
           if(m.ts && m.ts> (G.srvLastFetch[sinceKey]||0)) G.srvLastFetch[sinceKey]=m.ts;
         }
         schedSave();
@@ -1768,20 +1824,22 @@ async function loadChMsgs(sid,chId){
       if(G.curCh===chId && G.curSrv===sid && document.visibilityState!=='hidden') fetchSrvMsgs(); 
     },8000);
     fetchSrvMsgs(0);
-  G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
-    if(!enc||!msgId||G.seen.has(msgId))return;G.seen.add(msgId);
-    let msg=null;
-    // Try to decrypt with server key if available
-    if(sKey){try{const d=await SEA.decrypt(enc,sKey);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}}
-    // Fallback: raw JSON (old messages)
-    if(!msg){try{msg=typeof enc==='string'?JSON.parse(enc):enc;}catch(e){return;}}
-    if(!msg)return;
-    if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
-    if(!msg.content && !(msg.attachments&&msg.attachments.length))return;
-    const stored={...msg,channelId:chId,id:msgId};
-    await DB.put('messages',stored);schedSave();
-    if(G.curCh===chId)appendMsg(stored);
-  });
+    if(USE_GUN_SERVER_MSGS){
+      G.gun.get('sable-msgs').get(sid).get(chId).map().on(async(enc,msgId)=>{
+        if(!enc||!msgId||G.seen.has(msgId))return;G.seen.add(msgId);
+        let msg=null;
+        // Try to decrypt with server key if available
+        if(sKey){try{const d=await SEA.decrypt(enc,sKey);msg=typeof d==='string'?JSON.parse(d):d;}catch(e){}}
+        // Fallback: raw JSON (old messages)
+        if(!msg){try{msg=typeof enc==='string'?JSON.parse(enc):enc;}catch(e){return;}}
+        if(!msg)return;
+        if(msg.kind==='reaction'){ await handleIncomingReaction(msg); return; }
+        if(!msg.content && !(msg.attachments&&msg.attachments.length))return;
+        const stored={...msg,channelId:chId,id:msgId};
+        await DB.put('messages',stored);schedSave();
+        if(G.curCh===chId)appendMsg(stored);
+      });
+    }
 }
 function clearChat(){
   G.curCh=null;G.curChT=null;
@@ -1792,6 +1850,16 @@ function clearChat(){
   document.getElementById('enc-badge').style.display='none';
   document.getElementById('local-badge').style.display='none';
   document.getElementById('call-btn').style.display='none';document.getElementById('vcall-btn').style.display='none';
+}
+
+function toggleChPanel(){
+  const p=document.getElementById('ch-panel');
+  if(!p)return;
+  p.classList.toggle('open');
+}
+function closeChPanel(){
+  const p=document.getElementById('ch-panel');
+  if(p) p.classList.remove('open');
 }
 
 // ── MESSAGES ─────────────────────────────────────────────
@@ -3231,16 +3299,22 @@ async function acceptCall(){
 }
 
 // ── SETTINGS ─────────────────────────────────────────────
-async function openSettings(){
-  const[msgs,srvs,dms]=await Promise.all([DB.all('messages'),DB.all('servers'),DB.all('dms')]);
-  document.getElementById('stmsg').textContent=msgs.length;
+  async function openSettings(){
+    const[msgs,srvs,dms]=await Promise.all([DB.all('messages'),DB.all('servers'),DB.all('dms')]);
+    document.getElementById('stmsg').textContent=msgs.length;
   document.getElementById('stsrv').textContent=srvs.length;
   document.getElementById('stdm').textContent=dms.length;
   const bytes=new Blob([JSON.stringify({msgs,srvs,dms})]).size;
   document.getElementById('stsz').textContent=bytes>1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(1)+' KB';
-  // Relay
-  try{document.getElementById('relay-url').value=localStorage.getItem('sable-relay')||'';}catch(e){}
-  const connected=G.relayConnected;
+    // Relay
+    try{document.getElementById('relay-url').value=localStorage.getItem('sable-relay')||'';}catch(e){}
+    const connected=G.relayConnected;
+    // Notifications
+    const ns=document.getElementById('notif-status');
+    if(ns){
+      if(typeof Notification==='undefined') ns.textContent='Browser notifications are not supported.';
+      else ns.textContent=`Browser notifications: ${Notification.permission}.`;
+    }
   document.getElementById('relay-status-modal').textContent=connected?'● Connected to relay':'○ No relay connected — check internet or set a custom relay below';
   document.getElementById('relay-status-modal').style.color=connected?'var(--green)':'var(--yellow)';
   const rd=document.getElementById('ring-debug');
@@ -3740,7 +3814,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v8';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v12';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
