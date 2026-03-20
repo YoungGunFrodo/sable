@@ -231,24 +231,27 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
     z-index:3000;border-right:none;border-top:1px solid var(--border);
     background:rgba(22,24,27,.96);backdrop-filter:blur(8px)
   }
+  #srv-list{display:none!important;visibility:hidden;pointer-events:none}
   #srv-list .sicon{width:44px;height:44px;border-radius:14px}
   #ch-panel{
-    position:fixed;left:-100%;top:0;bottom:64px;width:78vw;max-width:320px;
-    z-index:2500;border-right:1px solid var(--border);transition:left .2s ease;
+    position:fixed;left:0;top:0;bottom:64px;width:78vw;max-width:320px;
+    z-index:2500;border-right:1px solid var(--border);transition:transform .2s ease;
+    transform:translateX(-110%);
     box-shadow:16px 0 40px rgba(0,0,0,.45)
   }
-  #ch-panel.open{left:0}
+  #ch-panel.open{transform:translateX(0)}
   #ch-panel-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
     z-index:2400;display:none
   }
   #ch-panel.open + #ch-panel-backdrop{display:block}
   #friends-panel{
-    position:fixed;right:-100%;top:0;bottom:64px;width:78vw;max-width:320px;
-    z-index:2500;border-left:1px solid var(--border);transition:right .2s ease;
+    position:fixed;right:0;top:0;bottom:64px;width:78vw;max-width:320px;
+    z-index:2500;border-left:1px solid var(--border);transition:transform .2s ease;
+    transform:translateX(110%);
     background:var(--bg2);box-shadow:-16px 0 40px rgba(0,0,0,.45);display:flex;flex-direction:column
   }
-  #friends-panel.open{right:0}
+  #friends-panel.open{transform:translateX(0)}
   #friends-panel-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
     z-index:2400;display:none
@@ -1056,12 +1059,12 @@ async function saveFriendsRemote(){
   }catch(e){}
 }
 async function loadFriendsRemote(){
-  if(!_profileApi||!G.user)return;
+  if(!_profileApi||!G.user)return false;
   try{
     const r=await fetch(`${_profileApi}/api/friends/${encodeURIComponent(G.user.pub)}`);
-    if(!r.ok)return;
+    if(!r.ok)return false;
     const d=await r.json();
-    if(!d||!d.enc)return;
+    if(!d||!d.enc)return false;
     const dec=await SEA.decrypt(d.enc,G.user.pair);
     const list=Array.isArray(dec)?dec:[];
     let changed=false;
@@ -1073,7 +1076,8 @@ async function loadFriendsRemote(){
       changed=true;
     }
     if(changed)renderFriends();
-  }catch(e){}
+    return list.length>0;
+  }catch(e){return false;}
 }
 
 async function saveServersRemote(){
@@ -1292,6 +1296,15 @@ function logout(){
 async function onLogin(){
   document.getElementById('auth').style.display='none';
   document.getElementById('app').style.display='flex';document.getElementById('app').classList.add('on');
+  if(window.innerWidth<=900){
+    const sl=document.getElementById('srv-list');
+    if(sl) sl.style.display='none';
+    closeChPanel();
+    closeFriendsPanel();
+  } else {
+    const sl=document.getElementById('srv-list');
+    if(sl) sl.style.display='';
+  }
   const u=G.user;
   // Load saved avatar
   const savedAv=await DB.kv.get('avatar');if(savedAv)u.avatar=savedAv;
@@ -1311,8 +1324,14 @@ async function onLogin(){
   setRelayUI(G.relayConnected);
   await initFS();
   await loadAll();
-  await loadFriendsRemote();
+  const _friendsLoaded=await loadFriendsRemote();
   const _srvChanged=await loadServersRemote();
+  if(!_friendsLoaded){
+    try{
+      const localFriends=await DB.all('friends');
+      if(localFriends&&localFriends.length) saveFriendsRemote();
+    }catch(e){}
+  }
   // If no remote backup exists but we have local servers, seed the backup now.
   if(!_srvChanged){
     try{
@@ -1578,6 +1597,12 @@ function goDMs(){
   document.getElementById('dm-btn').classList.add('on');
   document.getElementById('srv-hdr-name').textContent='Direct Messages';
   renderDMList();clearChat();
+  if(window.innerWidth<=900){
+    document.getElementById('mob-tab-dm')?.classList.add('on');
+    document.getElementById('mob-tab-srv')?.classList.remove('on');
+    closeFriendsPanel();
+    closeChPanel();
+  }
   document.getElementById('mbrs').style.display='block';
   document.getElementById('mbrs-srv').style.display='none';
   document.getElementById('mbrs-dm').style.display='block';
@@ -1590,6 +1615,11 @@ function goSrv(sid){
   document.getElementById('dm-btn').classList.remove('on');
   document.getElementById('srv-hdr-name').textContent=s.name;
   renderChList(sid);loadMbrs(sid);
+  if(window.innerWidth<=900){
+    document.getElementById('mob-tab-dm')?.classList.remove('on');
+    document.getElementById('mob-tab-srv')?.classList.add('on');
+    closeFriendsPanel();
+  }
   document.getElementById('mbrs').style.display='block';
   document.getElementById('mbrs-srv').style.display='block';
   document.getElementById('mbrs-dm').style.display='none';
@@ -1610,6 +1640,15 @@ function renderChList(sid){
   const ch=document.getElementById('ch-list');
   if(!ch)return;
   ch.innerHTML=renderSrvSection(sid)||'';
+}
+function renderSrvPicker(){
+  const srvs=Object.values(G.srvs||{}).filter(s=>s&&s.id&&s.id!=='dm');
+  let h=`<div><div class="csh"><span>Servers</span><div class="cadd" onclick="showM('csm')">+</div></div>`;
+  h+=`<div class="citem${G.curSrv==='dm'?' on':''}" onclick="goDMs();closeChPanel()"><span style="font-family:monospace;opacity:.7">#</span><span class="cname">Direct Messages</span></div>`;
+  srvs.forEach(s=>{
+    h+=`<div class="citem${G.curSrv===s.id?' on':''}" onclick="goSrv('${s.id}');closeChPanel()"><span class="cname">${esc(s.name||'Server')}</span></div>`;
+  });
+  return h+'</div>';
 }
 
 // ── DMs ──────────────────────────────────────────────────
@@ -1933,7 +1972,7 @@ function showDmList(){
 }
 function showSrvList(){
   const ch=document.getElementById('ch-list');
-  if(ch && G.curSrv && G.curSrv!=='dm'){ ch.innerHTML=renderSrvSection(G.curSrv); }
+  if(ch){ ch.innerHTML=renderSrvPicker(); }
   document.getElementById('mob-tab-dm')?.classList.remove('on');
   document.getElementById('mob-tab-srv')?.classList.add('on');
 }
@@ -2227,7 +2266,9 @@ function renderMbrs(sid){
 function toggleMbrs(){
   // On mobile, use the right-side friends panel instead of the members column.
   if(window.innerWidth<=900){
-    openFriendsPanel();
+    const p=document.getElementById('friends-panel');
+    if(p&&p.classList.contains('open')) closeFriendsPanel();
+    else openFriendsPanel();
     return;
   }
   const s=document.getElementById('mbrs');
@@ -3898,7 +3939,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v14';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v15';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
