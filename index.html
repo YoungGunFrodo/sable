@@ -231,12 +231,18 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
     z-index:3000;border-right:none;border-top:1px solid var(--border);
     background:rgba(22,24,27,.96);backdrop-filter:blur(8px)
   }
+  #srv-list .sicon{width:44px;height:44px;border-radius:14px}
   #ch-panel{
     position:fixed;left:-100%;top:0;bottom:64px;width:78vw;max-width:320px;
     z-index:2500;border-right:1px solid var(--border);transition:left .2s ease;
     box-shadow:16px 0 40px rgba(0,0,0,.45)
   }
   #ch-panel.open{left:0}
+  #ch-panel-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
+    z-index:2400;display:none
+  }
+  #ch-panel.open + #ch-panel-backdrop{display:block}
   #main{padding-bottom:64px}
   #mbrs{display:none}
   #chat-hdr{gap:8px}
@@ -408,10 +414,11 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 
   <!-- Channel panel -->
   <div id="ch-panel">
-    <div id="srv-hdr">
-      <span id="srv-hdr-name">Direct Messages</span>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10z"/></svg>
-    </div>
+	    <div id="srv-hdr">
+	      <span id="srv-hdr-name">Direct Messages</span>
+	      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10z"/></svg>
+	      <button class="ibt mob-only" style="margin-left:auto" onclick="event.stopPropagation();closeChPanel()">✕</button>
+	    </div>
     <div id="ch-list"></div>
     <div class="ubar">
       <div class="uav" id="myav" style="background:#7289da;color:#fff;">?<div class="online-dot"></div></div>
@@ -432,9 +439,10 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
         </button>
       </div>
     </div>
-  </div>
-
-  <!-- Main content -->
+	  </div>
+	  <div id="ch-panel-backdrop" onclick="closeChPanel()"></div>
+	
+	  <!-- Main content -->
   <div id="main">
     <div id="chat" style="display:flex;flex-direction:column;flex:1;min-width:0">
         <div id="chat-hdr">
@@ -3814,7 +3822,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v12';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v13';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
