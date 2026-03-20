@@ -2288,6 +2288,9 @@ function toggleMbrs(){
 function _audioConstraints(){
   return {echoCancellation:true,noiseSuppression:true,autoGainControl:true};
 }
+function _audioBoost(){
+  return window.innerWidth<=900 ? 1.6 : 1.0;
+}
 function _sfuGunRoom(room){ return G.gun.get('sable-sfu').get(room); }
 function _sfuQueueSubscribe(isDM, peerList){
   const key=isDM?'_dmSfuNeedT':'_sfuNeedT';
@@ -2887,17 +2890,25 @@ function playAu(pub,stream){
       if(G.vpeers[pub]&&G.vpeers[pub]._audioSrc){
         try{G.vpeers[pub]._audioSrc.disconnect();}catch(e){}
       }
+      if(G.vpeers[pub]&&G.vpeers[pub]._audioGain){
+        try{G.vpeers[pub]._audioGain.disconnect();}catch(e){}
+      }
       const src=G._voiceCtx.createMediaStreamSource(stream);
       const analyser=G._voiceCtx.createAnalyser();analyser.fftSize=256;
-      src.connect(analyser);analyser.connect(G._voiceCtx.destination);
-      if(G.vpeers[pub]){G.vpeers[pub]._audioSrc=src;G.vpeers[pub]._analyser=analyser;}
+      const gain=G._voiceCtx.createGain();
+      gain.gain.value=_audioBoost();
+      src.connect(analyser);
+      analyser.connect(gain);
+      gain.connect(G._voiceCtx.destination);
+      if(G.vpeers[pub]){G.vpeers[pub]._audioSrc=src;G.vpeers[pub]._analyser=analyser;G.vpeers[pub]._audioGain=gain;}
     }catch(e){console.warn('AudioContext playback error:',e);}
   }
   // Fallback: HTML audio element (may be blocked by autoplay policy)
   const id='au-'+pub.replace(/[^a-zA-Z0-9]/g,'_');
   let a=document.getElementById(id);
-  if(!a){a=document.createElement('audio');a.id=id;a.autoplay=true;document.getElementById('audios').appendChild(a);}
+  if(!a){a=document.createElement('audio');a.id=id;a.autoplay=true;a.playsInline=true;document.getElementById('audios').appendChild(a);}
   a.srcObject=stream;
+  a.volume=1.0;
   a.muted=!!G.deafened;
   a.play().catch(e=>{
     console.warn('[sable] Audio autoplay blocked:',e);
@@ -2962,6 +2973,7 @@ function rmPeer(pub){
     clearTimeout(G.vpeers[pub]._connectT);
     try{G.vpeers[pub].pc.close();}catch(e){}
     if(G.vpeers[pub]._audioSrc){try{G.vpeers[pub]._audioSrc.disconnect();}catch(e){}}
+    if(G.vpeers[pub]._audioGain){try{G.vpeers[pub]._audioGain.disconnect();}catch(e){}}
     delete G.vpeers[pub];
   }
   const a=document.getElementById('au-'+pub.replace(/[^a-zA-Z0-9]/g,'_'));
@@ -2998,8 +3010,13 @@ function toggleDeaf(){
     for(const vp of Object.values(G.vpeers)){
       if(!vp._analyser)continue;
       try{
-        if(G.deafened)vp._analyser.disconnect(G._voiceCtx.destination);
-        else vp._analyser.connect(G._voiceCtx.destination);
+        if(vp._audioGain){
+          if(G.deafened)vp._audioGain.disconnect(G._voiceCtx.destination);
+          else vp._audioGain.connect(G._voiceCtx.destination);
+        }else{
+          if(G.deafened)vp._analyser.disconnect(G._voiceCtx.destination);
+          else vp._analyser.connect(G._voiceCtx.destination);
+        }
       }catch(e){}
     }
   }
@@ -3948,7 +3965,7 @@ async function init(){
   document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.moverlay.on').forEach(m=>m.classList.remove('on'));hideCtx();}});
 console.log('%cSable — Encrypted Local-First Chat','color:#7289da;font-size:16px;font-weight:bold;');
-window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v16';
+window.SABLE_BUILD='2026-03-20-sfu-dm-servermsg-v17';
 console.log('Sable build:',window.SABLE_BUILD);
 try{const bb=document.getElementById('build-badge');if(bb)bb.textContent='v '+window.SABLE_BUILD;}catch(e){}
   // ── Auto-login from session storage (survives page refresh, cleared on tab close) ──
